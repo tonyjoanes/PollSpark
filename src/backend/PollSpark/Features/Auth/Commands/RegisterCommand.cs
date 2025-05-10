@@ -5,6 +5,7 @@ using PollSpark.Data;
 using PollSpark.DTOs;
 using PollSpark.Models;
 using PollSpark.Services.Auth;
+using AuthResponse = PollSpark.DTOs.AuthResponse;
 
 namespace PollSpark.Features.Auth.Commands;
 
