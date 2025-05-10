@@ -1,0 +1,28 @@
+@baseUrl = http://localhost:5000
+
+### Register a new user
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+    "username": "testuser",
+    "email": "test@example.com",
+    "password": "password123"
+}
+
+### Login with the registered user
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "test@example.com",
+    "password": "password123"
+}
+
+### Extract token from login response and store it
+@token = {{login.response.body.token}}
+
+### Get user profile (uses the stored token)
+GET {{baseUrl}}/api/users/profile
+Authorization: Bearer {{token}} 
