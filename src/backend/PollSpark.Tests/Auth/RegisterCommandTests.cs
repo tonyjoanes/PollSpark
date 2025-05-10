@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using PollSpark.Commands.Auth;
 using PollSpark.Data;
+using PollSpark.Features.Auth.Commands;
 using PollSpark.Services.Auth;
 using Xunit;
 
@@ -16,9 +16,11 @@ public class RegisterCommandTests
     public RegisterCommandTests()
     {
         _authServiceMock = new Mock<IAuthService>();
-        _context = new PollSparkContext(new DbContextOptionsBuilder<PollSparkContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options);
+        _context = new PollSparkContext(
+            new DbContextOptionsBuilder<PollSparkContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options
+        );
         _handler = new RegisterCommandHandler(_context, _authServiceMock.Object);
     }
 
@@ -27,8 +29,7 @@ public class RegisterCommandTests
     {
         // Arrange
         var command = new RegisterCommand("testuser", "test@example.com", "password123");
-        _authServiceMock.Setup(x => x.HashPassword(It.IsAny<string>()))
-            .Returns("hashed_password");
+        _authServiceMock.Setup(x => x.HashPassword(It.IsAny<string>())).Returns("hashed_password");
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -45,17 +46,18 @@ public class RegisterCommandTests
     {
         // Arrange
         var command = new RegisterCommand("testuser", "test@example.com", "password123");
-        _authServiceMock.Setup(x => x.HashPassword(It.IsAny<string>()))
-            .Returns("hashed_password");
+        _authServiceMock.Setup(x => x.HashPassword(It.IsAny<string>())).Returns("hashed_password");
 
         // Add existing user
-        await _context.Users.AddAsync(new Models.User
-        {
-            Username = "existing",
-            Email = "test@example.com",
-            PasswordHash = "hash",
-            CreatedAt = DateTime.UtcNow
-        });
+        await _context.Users.AddAsync(
+            new Models.User
+            {
+                Username = "existing",
+                Email = "test@example.com",
+                PasswordHash = "hash",
+                CreatedAt = DateTime.UtcNow,
+            }
+        );
         await _context.SaveChangesAsync();
 
         // Act
@@ -66,4 +68,4 @@ public class RegisterCommandTests
         var error = result.AsT1;
         Assert.Equal("Email already registered", error.Message);
     }
-} 
+}

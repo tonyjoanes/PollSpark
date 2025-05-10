@@ -1,13 +1,11 @@
 using System.Security.Claims;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using OneOf;
-using PollSpark.Commands.Auth;
 using PollSpark.Data;
-using PollSpark.DTOs;
+using PollSpark.Features.Auth.Commands;
 
-namespace PollSpark.Queries.GetUserProfile;
+namespace PollSpark.Features.Auth.Queries;
 
 public record GetUserProfileQuery : IRequest<OneOf<UserProfileDto, AuthError>>;
 

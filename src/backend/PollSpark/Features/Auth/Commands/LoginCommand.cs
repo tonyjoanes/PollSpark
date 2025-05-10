@@ -3,10 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using OneOf;
 using PollSpark.Data;
 using PollSpark.DTOs;
-using PollSpark.Models;
 using PollSpark.Services.Auth;
 
-namespace PollSpark.Commands.Auth;
+namespace PollSpark.Features.Auth.Commands;
 
 public record LoginCommand(string Email, string Password) : IRequest<OneOf<AuthResponse, AuthError>>;
 

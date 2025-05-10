@@ -6,12 +6,13 @@ using PollSpark.DTOs;
 using PollSpark.Models;
 using PollSpark.Services.Auth;
 
-namespace PollSpark.Commands.Auth;
+namespace PollSpark.Features.Auth.Commands;
 
-public record RegisterCommand(string Username, string Email, string Password) 
+public record RegisterCommand(string Username, string Email, string Password)
     : IRequest<OneOf<AuthResponse, AuthError>>;
 
-public class RegisterCommandHandler : IRequestHandler<RegisterCommand, OneOf<AuthResponse, AuthError>>
+public class RegisterCommandHandler
+    : IRequestHandler<RegisterCommand, OneOf<AuthResponse, AuthError>>
 {
     private readonly PollSparkContext _context;
     private readonly IAuthService _authService;
@@ -22,7 +23,10 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, OneOf<Aut
         _authService = authService;
     }
 
-    public async Task<OneOf<AuthResponse, AuthError>> Handle(RegisterCommand request, CancellationToken cancellationToken)
+    public async Task<OneOf<AuthResponse, AuthError>> Handle(
+        RegisterCommand request,
+        CancellationToken cancellationToken
+    )
     {
         if (await _context.Users.AnyAsync(u => u.Email == request.Email))
         {
@@ -39,7 +43,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, OneOf<Aut
             Username = request.Username,
             Email = request.Email,
             PasswordHash = _authService.HashPassword(request.Password),
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
         };
 
         _context.Users.Add(user);
@@ -48,4 +52,4 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, OneOf<Aut
         var token = _authService.GenerateJwtToken(user);
         return new AuthResponse(token, user.Username);
     }
-} 
+}
