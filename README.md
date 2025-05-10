@@ -1,6 +1,6 @@
 # PollSpark
 
-[![Build Status](https://github.com/YOUR_USERNAME/PollSpark/actions/workflows/build.yml/badge.svg)](https://github.com/YOUR_USERNAME/PollSpark/actions/workflows/build.yml)
+[![Build Status](https://github.com/tonyjoanes/PollSpark/actions/workflows/build.yml/badge.svg)](https://github.com/tonyjoanes/PollSpark/actions/workflows/build.yml)
 [![.NET Version](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/download/dotnet/8.0)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
