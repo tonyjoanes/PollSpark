@@ -4,7 +4,7 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using PollSpark.Models;
 
-namespace PollSpark.Services.Auth;
+namespace PollSpark.Features.Auth.Services;
 
 public interface IAuthService
 {
@@ -54,4 +54,4 @@ public class AuthService : IAuthService
     {
         return BCrypt.Net.BCrypt.Verify(password, hash);
     }
-}
+} 

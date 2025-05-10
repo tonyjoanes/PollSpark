@@ -2,9 +2,8 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using PollSpark.Data;
-using PollSpark.DTOs;
+using PollSpark.Features.Auth.Services;
 using PollSpark.Models;
-using PollSpark.Services.Auth;
 using AuthResponse = PollSpark.DTOs.AuthResponse;
 
 namespace PollSpark.Features.Auth.Commands;

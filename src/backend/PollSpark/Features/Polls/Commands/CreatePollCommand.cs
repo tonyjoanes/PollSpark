@@ -2,7 +2,7 @@ using MediatR;
 using OneOf;
 using PollSpark.Models;
 
-namespace PollSpark.Commands.CreatePoll;
+namespace PollSpark.Features.Polls.Commands;
 
 public record CreatePollCommand(
     string Title,
@@ -12,4 +12,4 @@ public record CreatePollCommand(
     List<string> Options
 ) : IRequest<OneOf<Poll, ValidationError>>;
 
-public record ValidationError(string Message);
+public record ValidationError(string Message); 

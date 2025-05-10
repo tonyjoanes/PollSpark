@@ -5,7 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PollSpark.Data;
 using PollSpark.Extensions;
-using PollSpark.Services.Auth;
+using PollSpark.Features.Auth.Services;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);

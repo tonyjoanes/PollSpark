@@ -3,11 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using OneOf;
 using PollSpark.Data;
 using PollSpark.DTOs;
-using PollSpark.Services.Auth;
+using PollSpark.Features.Auth.Services;
 
 namespace PollSpark.Features.Auth.Commands;
 
-public record LoginCommand(string Email, string Password) : IRequest<OneOf<AuthResponse, AuthError>>;
+public record LoginCommand(string Email, string Password)
+    : IRequest<OneOf<AuthResponse, AuthError>>;
 
 public record AuthError(string Message);
 
@@ -22,10 +23,13 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, OneOf<AuthRespo
         _authService = authService;
     }
 
-    public async Task<OneOf<AuthResponse, AuthError>> Handle(LoginCommand request, CancellationToken cancellationToken)
+    public async Task<OneOf<AuthResponse, AuthError>> Handle(
+        LoginCommand request,
+        CancellationToken cancellationToken
+    )
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-        
+
         if (user == null || !_authService.VerifyPassword(request.Password, user.PasswordHash))
         {
             return new AuthError("Invalid email or password");
@@ -34,4 +38,4 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, OneOf<AuthRespo
         var token = _authService.GenerateJwtToken(user);
         return new AuthResponse(token, user.Username);
     }
-} 
+}

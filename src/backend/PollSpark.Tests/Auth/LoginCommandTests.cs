@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using PollSpark.Data;
 using PollSpark.Features.Auth.Commands;
-using PollSpark.Services.Auth;
+using PollSpark.Features.Auth.Services;
 using Xunit;
 
 namespace PollSpark.Tests.Auth;
