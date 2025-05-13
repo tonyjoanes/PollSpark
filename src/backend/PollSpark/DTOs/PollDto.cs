@@ -8,8 +8,10 @@ public record PollDto(
     DateTime? ExpiresAt,
     bool IsPublic,
     string CreatedByUsername,
-    List<PollOptionDto> Options,
-    int TotalVotes
+    List<PollOptionDto> Options
 );
 
-public record PollOptionDto(Guid Id, string Text, int VoteCount);
+public record PollOptionDto(
+    Guid Id,
+    string Text
+);

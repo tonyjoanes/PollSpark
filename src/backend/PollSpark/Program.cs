@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -59,6 +60,13 @@ builder.Services.AddSwaggerGen(options =>
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
 
+// Configure JSON serialization
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+    options.SerializerOptions.WriteIndented = true;
+});
+
 // Add CORS
 builder.Services.AddCors(options =>
 {
@@ -79,6 +87,7 @@ builder.Services.AddDbContext<PollSparkContext>(options =>
 
 // Add Auth Service
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
@@ -125,6 +134,7 @@ app.UseAuthorization();
 // Map endpoints
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
+app.MapPollEndpoints();
 
 // Add your endpoints here
 app.MapGet("/", () => "Welcome to PollSpark!");

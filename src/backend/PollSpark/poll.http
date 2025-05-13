@@ -1,0 +1,75 @@
+@baseUrl = http://localhost:5000
+@authToken = your_jwt_token_here
+
+### Login to get JWT token
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "tony@test.com",
+    "password": "Test123"
+}
+
+### Store the token
+@authToken = {{login.response.body.token}}
+
+### Verify token value
+GET {{baseUrl}}/api/users/profile
+Authorization: Bearer {{authToken}}
+
+### Create a new poll
+POST {{baseUrl}}/api/polls
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "title": "What's your favorite programming language?",
+    "description": "Let's find out which programming language is most popular among developers",
+    "isPublic": true,
+    "expiresAt": "2024-12-31T23:59:59Z",
+    "options": [
+        "C#",
+        "JavaScript",
+        "Python",
+        "Java",
+        "Go"
+    ]
+}
+
+### Create a private poll
+POST {{baseUrl}}/api/polls
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "title": "Team Lunch Preferences",
+    "description": "Where should we go for our next team lunch?",
+    "isPublic": false,
+    "expiresAt": "2024-03-31T23:59:59Z",
+    "options": [
+        "Italian",
+        "Mexican",
+        "Japanese",
+        "Indian",
+        "Thai"
+    ]
+}
+
+### Create a poll without expiration
+POST {{baseUrl}}/api/polls
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "title": "Best IDE for Development",
+    "description": "Which IDE do you prefer for your daily development work?",
+    "isPublic": true,
+    "options": [
+        "Visual Studio",
+        "VS Code",
+        "Rider",
+        "IntelliJ IDEA",
+        "Eclipse"
+    ]
+} 

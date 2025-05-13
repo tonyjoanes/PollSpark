@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using PollSpark.Features.Auth.Commands;
 using PollSpark.Features.Auth.Queries;
+using PollSpark.Features.Polls.Commands;
 using PollSpark.Models;
 
 namespace PollSpark.Extensions;
@@ -68,6 +69,30 @@ public static class EndpointExtensions
             .WithDescription("Retrieves the profile information of the currently authenticated user")
             .Produces<UserProfileResponse>(StatusCodes.Status200OK)
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized);
+    }
+
+    public static void MapPollEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/polls").WithTags("Polls");
+
+        group
+            .MapPost(
+                "/",
+                [Authorize]
+                async (CreatePollCommand command, IMediator mediator) =>
+                {
+                    var result = await mediator.Send(command);
+                    return result.Match(
+                        success => Results.Ok(success),
+                        error => Results.BadRequest(error)
+                    );
+                }
+            )
+            .WithName("CreatePoll")
+            .WithDescription("Creates a new poll with the provided details")
+            .Produces<Poll>(StatusCodes.Status200OK)
+            .Produces<ValidationError>(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status401Unauthorized);
     }
 }

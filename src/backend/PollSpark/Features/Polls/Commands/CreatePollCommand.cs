@@ -1,5 +1,6 @@
 using MediatR;
 using OneOf;
+using PollSpark.DTOs;
 using PollSpark.Models;
 
 namespace PollSpark.Features.Polls.Commands;
@@ -10,4 +11,4 @@ public record CreatePollCommand(
     bool IsPublic,
     DateTime? ExpiresAt,
     List<string> Options
-) : IRequest<OneOf<Poll, ValidationError>>; 
+) : IRequest<OneOf<PollDto, ValidationError>>; 
