@@ -1,5 +1,7 @@
 # React + TypeScript + Vite
 
+![Frontend Build](https://img.shields.io/badge/Frontend%20Build-Stable-brightgreen)
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
