@@ -5,7 +5,8 @@ namespace PollSpark.Data;
 
 public class PollSparkContext : DbContext
 {
-    public PollSparkContext(DbContextOptions<PollSparkContext> options) : base(options) {}
+    public PollSparkContext(DbContextOptions<PollSparkContext> options)
+        : base(options) { }
 
     public DbSet<Poll> Polls => Set<Poll>();
     public DbSet<User> Users => Set<User>();
@@ -16,28 +17,45 @@ public class PollSparkContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<Poll>()
+        modelBuilder
+            .Entity<Poll>()
             .HasOne(p => p.CreatedBy)
             .WithMany(u => u.CreatedPolls)
             .HasForeignKey(p => p.CreatedById)
             .OnDelete(DeleteBehavior.Restrict);
 
-        modelBuilder.Entity<PollOption>()
+        modelBuilder
+            .Entity<PollOption>()
             .HasOne(po => po.Poll)
             .WithMany(p => p.Options)
             .HasForeignKey(po => po.PollId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Vote>()
+        modelBuilder
+            .Entity<Vote>()
             .HasOne(v => v.Poll)
             .WithMany(p => p.Votes)
             .HasForeignKey(v => v.PollId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Vote>()
+        modelBuilder
+            .Entity<Vote>()
             .HasOne(v => v.Option)
             .WithMany(o => o.Votes)
             .HasForeignKey(v => v.OptionId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Add unique constraint for votes
+        modelBuilder
+            .Entity<Vote>()
+            .HasIndex(v => new { v.PollId, v.UserId })
+            .IsUnique()
+            .HasFilter("[UserId] IS NOT NULL");
+
+        modelBuilder
+            .Entity<Vote>()
+            .HasIndex(v => new { v.PollId, v.IpAddress })
+            .IsUnique()
+            .HasFilter("[IpAddress] IS NOT NULL");
     }
 }

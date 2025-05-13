@@ -10,6 +10,4 @@ public record CreatePollCommand(
     bool IsPublic,
     DateTime? ExpiresAt,
     List<string> Options
-) : IRequest<OneOf<Poll, ValidationError>>;
-
-public record ValidationError(string Message); 
+) : IRequest<OneOf<Poll, ValidationError>>; 

@@ -1,6 +1,6 @@
 namespace PollSpark.Models;
 
-public class Vote
+public record Vote
 {
     public Guid Id { get; set; }
     public Guid PollId { get; set; }
@@ -11,4 +11,4 @@ public class Vote
     public User? User { get; set; }
     public DateTime CreatedAt { get; set; }
     public string? IpAddress { get; set; }
-} 
+}

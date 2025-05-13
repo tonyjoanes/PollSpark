@@ -12,8 +12,4 @@ public record PollDto(
     int TotalVotes
 );
 
-public record PollOptionDto(
-    Guid Id,
-    string Text,
-    int VoteCount
-); 
+public record PollOptionDto(Guid Id, string Text, int VoteCount);
