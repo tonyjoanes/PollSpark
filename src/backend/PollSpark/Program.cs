@@ -8,6 +8,7 @@ using Microsoft.OpenApi.Models;
 using PollSpark.Data;
 using PollSpark.Extensions;
 using PollSpark.Features.Auth.Services;
+using PollSpark.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -112,6 +113,9 @@ builder
     });
 
 builder.Services.AddAuthorization();
+
+// Add Rate Limiting
+builder.Services.AddSingleton<IRateLimiter, MemoryRateLimiter>();
 
 var app = builder.Build();
 

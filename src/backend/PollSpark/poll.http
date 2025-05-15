@@ -19,6 +19,7 @@ GET {{baseUrl}}/api/users/profile
 Authorization: Bearer {{authToken}}
 
 ### Create a new poll
+# @name createPoll
 POST {{baseUrl}}/api/polls
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
@@ -36,6 +37,9 @@ Authorization: Bearer {{authToken}}
         "Go"
     ]
 }
+
+### Store the created poll ID
+@pollId = {{createPoll.response.body.id}}
 
 ### Create a private poll
 POST {{baseUrl}}/api/polls
@@ -72,4 +76,43 @@ Authorization: Bearer {{authToken}}
         "IntelliJ IDEA",
         "Eclipse"
     ]
-} 
+}
+
+### Get all polls (paginated)
+GET {{baseUrl}}/api/polls?page=1&pageSize=10
+
+### Get a specific poll by ID
+GET {{baseUrl}}/api/polls/{{pollId}}
+
+### Vote on a poll option
+# Note: Replace {optionId} with an actual option ID from the poll
+POST {{baseUrl}}/api/polls/{{pollId}}/vote
+Content-Type: application/json
+
+{
+    "optionId": "00000000-0000-0000-0000-000000000000"
+}
+
+### Update a poll
+PUT {{baseUrl}}/api/polls/{{pollId}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "title": "Updated: What's your favorite programming language?",
+    "description": "Updated description for the programming language poll",
+    "isPublic": true,
+    "expiresAt": "2024-12-31T23:59:59Z",
+    "options": [
+        "C#",
+        "JavaScript",
+        "Python",
+        "Java",
+        "Go",
+        "Rust"
+    ]
+}
+
+### Delete a poll
+DELETE {{baseUrl}}/api/polls/{{pollId}}
+Authorization: Bearer {{authToken}} 

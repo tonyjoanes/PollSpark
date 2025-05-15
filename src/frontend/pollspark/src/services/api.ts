@@ -19,11 +19,21 @@ api.interceptors.request.use((config) => {
 });
 
 export interface Poll {
+  $id: string;
   id: string;
-  question: string;
-  options: string[];
+  title: string;
+  description: string;
   createdAt: string;
-  createdBy: string;
+  expiresAt: string;
+  isPublic: boolean;
+  createdByUsername: string;
+  options: {
+    $id: string;
+    $values: {
+      id: string;
+      text: string;
+    }[];
+  };
 }
 
 export interface PollResults {
@@ -43,11 +53,29 @@ export interface User {
   createdPollsCount: number;
 }
 
+export interface PaginatedResponse<T> {
+  $id: string;
+  items: {
+    $id: string;
+    $values: T[];
+  };
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
 export const pollApi = {
-  getPolls: () => api.get<Poll[]>('/polls'),
+  getPolls: (page: number = 0, pageSize: number = 10) => 
+    api.get<PaginatedResponse<Poll>>('/polls', { params: { page, pageSize } }),
   getPoll: (id: string) => api.get<Poll>(`/polls/${id}`),
-  createPoll: (data: { question: string; options: string[] }) => 
-    api.post<Poll>('/polls', data),
+  createPoll: (data: { 
+    title: string;
+    description: string;
+    isPublic: boolean;
+    expiresAt?: string;
+    options: string[];
+  }) => api.post<Poll>('/polls', data),
   vote: (pollId: string, option: string) => 
     api.post(`/polls/${pollId}/vote`, { option }),
   getResults: (pollId: string) => 

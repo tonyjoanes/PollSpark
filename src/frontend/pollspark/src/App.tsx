@@ -5,6 +5,9 @@ import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { Register } from './pages/Register';
 import { Login } from './pages/Login';
+import { Polls } from './pages/Polls';
+import { ViewPoll } from './pages/ViewPoll';
+import { CreatePoll } from './pages/CreatePoll';
 import { AuthProvider } from './contexts/AuthContext';
 import '@mantine/core/styles.css';
 import './App.css';
@@ -50,9 +53,9 @@ function App() {
             <Layout>
               <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/polls" element={<div>Polls List</div>} />
-                <Route path="/polls/:id" element={<div>Poll Details</div>} />
-                <Route path="/create" element={<div>Create Poll</div>} />
+                <Route path="/polls" element={<Polls />} />
+                <Route path="/polls/:id" element={<ViewPoll />} />
+                <Route path="/create" element={<CreatePoll />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
               </Routes>

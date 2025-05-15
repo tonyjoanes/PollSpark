@@ -1,9 +1,15 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using PollSpark.DTOs;
+using PollSpark.Extensions;
 using PollSpark.Features.Auth.Commands;
 using PollSpark.Features.Auth.Queries;
 using PollSpark.Features.Polls.Commands;
+using PollSpark.Features.Polls.Queries;
 using PollSpark.Models;
+using PollSpark.Services;
 
 namespace PollSpark.Extensions;
 
@@ -66,7 +72,9 @@ public static class EndpointExtensions
                 }
             )
             .WithName("GetUserProfile")
-            .WithDescription("Retrieves the profile information of the currently authenticated user")
+            .WithDescription(
+                "Retrieves the profile information of the currently authenticated user"
+            )
             .Produces<UserProfileResponse>(StatusCodes.Status200OK)
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status401Unauthorized);
@@ -74,7 +82,21 @@ public static class EndpointExtensions
 
     public static void MapPollEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/polls").WithTags("Polls");
+        var group = app.MapGroup("/api/polls")
+            .WithTags("Polls")
+            .AddEndpointFilter(
+                async (context, next) =>
+                {
+                    // Add rate limiting
+                    var rateLimiter =
+                        context.HttpContext.RequestServices.GetRequiredService<IRateLimiter>();
+                    if (!await rateLimiter.TryAcquireAsync())
+                    {
+                        return HttpResultsExtensions.TooManyRequests();
+                    }
+                    return await next(context);
+                }
+            );
 
         group
             .MapPost(
@@ -91,8 +113,124 @@ public static class EndpointExtensions
             )
             .WithName("CreatePoll")
             .WithDescription("Creates a new poll with the provided details")
-            .Produces<Poll>(StatusCodes.Status200OK)
+            .Produces<PollDto>(StatusCodes.Status200OK)
             .Produces<ValidationError>(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status401Unauthorized);
+
+        group
+            .MapGet(
+                "/",
+                async (
+                    IMediator mediator,
+                    [FromQuery] int page = 1,
+                    [FromQuery] int pageSize = 10
+                ) =>
+                {
+                    var query = new GetPollsQuery(page, pageSize);
+                    var result = await mediator.Send(query);
+                    return result.Match(
+                        success => Results.Ok(success),
+                        error => Results.BadRequest(error)
+                    );
+                }
+            )
+            .WithName("GetPolls")
+            .WithDescription("Retrieves a paginated list of polls")
+            .Produces<PaginatedResponse<PollDto>>(StatusCodes.Status200OK)
+            .CacheOutput(x => x.Tag("polls"));
+
+        group
+            .MapGet(
+                "/{id}",
+                async (Guid id, IMediator mediator) =>
+                {
+                    var query = new GetPollByIdQuery(id);
+                    var result = await mediator.Send(query);
+                    return result.Match(
+                        success => Results.Ok(success),
+                        error => Results.NotFound(error)
+                    );
+                }
+            )
+            .WithName("GetPollById")
+            .WithDescription("Retrieves a specific poll by its ID")
+            .Produces<PollDto>(StatusCodes.Status200OK)
+            .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
+            .CacheOutput(x => x.Tag("polls"));
+
+        group
+            .MapPut(
+                "/{id}",
+                [Authorize]
+                async (Guid id, UpdatePollCommand command, IMediator mediator) =>
+                {
+                    command = command with { Id = id };
+                    var result = await mediator.Send(command);
+                    return result.Match(
+                        success => Results.Ok(success),
+                        error => Results.BadRequest(error)
+                    );
+                }
+            )
+            .WithName("UpdatePoll")
+            .WithDescription("Updates an existing poll")
+            .Produces<PollDto>(StatusCodes.Status200OK)
+            .Produces<ValidationError>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
+
+        group
+            .MapDelete(
+                "/{id}",
+                [Authorize]
+                async (Guid id, IMediator mediator) =>
+                {
+                    var command = new DeletePollCommand(id);
+                    var result = await mediator.Send(command);
+                    return result.Match(
+                        success => Results.NoContent(),
+                        error => Results.BadRequest(error)
+                    );
+                }
+            )
+            .WithName("DeletePoll")
+            .WithDescription("Deletes a poll")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<ValidationError>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
+
+        group
+            .MapPost(
+                "/{id}/vote",
+                async (Guid id, VoteCommand command, IMediator mediator) =>
+                {
+                    command = command with { PollId = id };
+                    var result = await mediator.Send(command);
+                    return result.Match(
+                        success => Results.Ok(success),
+                        error => Results.BadRequest(error)
+                    );
+                }
+            )
+            .WithName("VoteOnPoll")
+            .WithDescription("Votes on a poll option")
+            .Produces<Success>(StatusCodes.Status200OK)
+            .Produces<ValidationError>(StatusCodes.Status400BadRequest)
+            .AddEndpointFilter(
+                async (context, next) =>
+                {
+                    // Add rate limiting for voting
+                    var rateLimiter =
+                        context.HttpContext.RequestServices.GetRequiredService<IRateLimiter>();
+                    if (!await rateLimiter.TryAcquireAsync("vote", TimeSpan.FromMinutes(1)))
+                    {
+                        return HttpResultsExtensions.TooManyRequests(
+                            "Too many votes. Please try again later."
+                        );
+                    }
+                    return await next(context);
+                }
+            );
     }
 }
