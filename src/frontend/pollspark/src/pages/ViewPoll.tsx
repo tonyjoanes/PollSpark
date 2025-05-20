@@ -23,7 +23,7 @@ export function ViewPoll() {
     enabled: !!id,
   });
 
-  const { data: resultsResponse, isLoading: isLoadingResults } = useQuery({
+  const { data: resultsResponse } = useQuery({
     queryKey: ['poll-results', id],
     queryFn: () => pollApi.getResults(id!),
     enabled: !!id,
