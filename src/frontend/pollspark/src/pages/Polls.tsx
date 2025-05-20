@@ -1,17 +1,42 @@
-import { useEffect, useState } from 'react';
-import { Container, Title, Text, Card, Group, Stack, Button, Pagination, Badge, Skeleton } from '@mantine/core';
+import { useState } from 'react';
+import { Container, Title, Text, Card, Group, Stack, Button, Pagination, Badge, Skeleton, SegmentedControl } from '@mantine/core';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { pollApi, type Poll, type PaginatedResponse } from '../services/api';
+import { pollApi, type Poll, type PollResults } from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
+
+type PollFilter = 'all' | 'active' | 'expired' | 'voted';
 
 export function Polls() {
   const [page, setPage] = useState(1);
+  const [filter, setFilter] = useState<PollFilter>('all');
   const pageSize = 10;
 
   const { data: response, isLoading, error } = useQuery({
-    queryKey: ['polls', page],
-    queryFn: () => pollApi.getPolls(page, pageSize),
+    queryKey: ['polls', page, filter],
+    queryFn: () => {
+      if (filter === 'voted') {
+        return pollApi.getVotedPolls(page, pageSize);
+      }
+      return pollApi.getPolls(page, pageSize);
+    },
+  });
+
+  const { data: resultsResponses } = useQuery({
+    queryKey: ['poll-results', response?.data?.items?.$values?.map(p => p.id)],
+    queryFn: async () => {
+      const polls = response?.data?.items?.$values || [];
+      const results = await Promise.all(
+        polls.map(poll => pollApi.getResults(poll.id).catch(() => null))
+      );
+      return results.reduce((acc, result, index) => {
+        if (result?.data) {
+          acc[polls[index].id] = result.data;
+        }
+        return acc;
+      }, {} as Record<string, PollResults>);
+    },
+    enabled: !!response?.data?.items?.$values?.length,
   });
 
   const data = response?.data;
@@ -22,6 +47,18 @@ export function Polls() {
   console.log('Items:', items);
   console.log('Items type:', items ? typeof items : 'undefined');
   console.log('Is array?', Array.isArray(items));
+
+  const filteredItems = items.filter((poll) => {
+    const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
+    switch (filter) {
+      case 'active':
+        return !isExpired;
+      case 'expired':
+        return isExpired;
+      default:
+        return true;
+    }
+  });
 
   if (error) {
     return (
@@ -35,9 +72,22 @@ export function Polls() {
 
   return (
     <Container size="lg" py="xl">
-      <Title order={1} mb="xl">
-        Browse Polls
-      </Title>
+      <Group justify="space-between" align="center" mb="xl">
+        <Title order={1}>Browse Polls</Title>
+        <SegmentedControl
+          value={filter}
+          onChange={(value) => {
+            setFilter(value as PollFilter);
+            setPage(1); // Reset to first page when changing filter
+          }}
+          data={[
+            { label: 'All', value: 'all' },
+            { label: 'Active', value: 'active' },
+            { label: 'Expired', value: 'expired' },
+            { label: 'My Votes', value: 'voted' },
+          ]}
+        />
+      </Group>
 
       <Stack gap="md">
         {isLoading ? (
@@ -56,56 +106,85 @@ export function Polls() {
           ))
         ) : (
           // Poll cards
-          items.map((poll: Poll) => (
-            <Card key={poll.id} withBorder p="lg" radius="md">
-              <Stack gap="xs">
-                <Group justify="space-between" align="flex-start">
-                  <div>
-                    <Title order={3} mb="xs">
-                      {poll.title}
-                    </Title>
-                    <Text c="dimmed" size="sm" mb="md">
-                      {poll.description}
-                    </Text>
-                  </div>
-                  <Badge color={poll.isPublic ? 'blue' : 'gray'}>
-                    {poll.isPublic ? 'Public' : 'Private'}
-                  </Badge>
-                </Group>
-
-                <Group gap="xs">
-                  <Text size="sm" c="dimmed">
-                    Created by {poll.createdByUsername}
-                  </Text>
-                  <Text size="sm" c="dimmed">
-                    • {formatDistanceToNow(new Date(poll.createdAt), { addSuffix: true })}
-                  </Text>
-                  {poll.expiresAt && (
-                    <>
-                      <Text size="sm" c="dimmed">•</Text>
-                      <Text size="sm" c="dimmed">
-                        Expires {formatDistanceToNow(new Date(poll.expiresAt), { addSuffix: true })}
+          filteredItems.map((poll: Poll) => {
+            const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
+            const results = resultsResponses?.[poll.id];
+            return (
+              <Card key={poll.id} withBorder p="lg" radius="md">
+                <Stack gap="xs">
+                  <Group justify="space-between" align="flex-start">
+                    <div>
+                      <Title order={3} mb="xs">
+                        {poll.title}
+                      </Title>
+                      <Text c="dimmed" size="sm" mb="md">
+                        {poll.description}
                       </Text>
-                    </>
+                    </div>
+                    <Group>
+                      {isExpired && (
+                        <Badge color="red">Expired</Badge>
+                      )}
+                      <Badge color={poll.isPublic ? 'blue' : 'gray'}>
+                        {poll.isPublic ? 'Public' : 'Private'}
+                      </Badge>
+                    </Group>
+                  </Group>
+
+                  <Group gap="xs">
+                    <Text size="sm" c="dimmed">
+                      Created by {poll.createdByUsername}
+                    </Text>
+                    <Text size="sm" c="dimmed">
+                      • {formatDistanceToNow(new Date(poll.createdAt), { addSuffix: true })}
+                    </Text>
+                    {poll.expiresAt && (
+                      <>
+                        <Text size="sm" c="dimmed">•</Text>
+                        <Text size="sm" c="dimmed">
+                          Expires {formatDistanceToNow(new Date(poll.expiresAt), { addSuffix: true })}
+                        </Text>
+                      </>
+                    )}
+                  </Group>
+
+                  {results && isExpired && (
+                    <Text size="sm" c="dimmed" ta="center">
+                      Total votes: {results.totalVotes}
+                    </Text>
                   )}
-                </Group>
 
-                <Group gap="xs" mt="xs">
-                  {poll.options.$values.map((option) => (
-                    <Badge key={option.id} variant="light">
-                      {option.text}
-                    </Badge>
-                  ))}
-                </Group>
+                  <Group gap="xs" mt="xs">
+                    {poll.options.$values.map((option) => {
+                      const result = results?.results.$values.find(r => r.optionId.toLowerCase() === option.id.toLowerCase());
+                      return (
+                        <Badge 
+                          key={option.id} 
+                          variant="light"
+                          style={{ minWidth: 80, padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}
+                        >
+                          <Group gap={4} align="center" style={{ flexWrap: 'nowrap' }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 90 }}>{option.text}</span>
+                            {results && isExpired && (
+                              <Text size="xs" c="dimmed" span>
+                                ({result?.votes || 0})
+                              </Text>
+                            )}
+                          </Group>
+                        </Badge>
+                      );
+                    })}
+                  </Group>
 
-                <Group justify="flex-end" mt="md">
-                  <Button component={Link} to={`/polls/${poll.id}`} variant="light">
-                    View Poll
-                  </Button>
-                </Group>
-              </Stack>
-            </Card>
-          ))
+                  <Group justify="flex-end" mt="md">
+                    <Button component={Link} to={`/polls/${poll.id}`} variant="light">
+                      View Poll
+                    </Button>
+                  </Group>
+                </Stack>
+              </Card>
+            );
+          })
         )}
 
         {data && (

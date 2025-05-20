@@ -6,4 +6,4 @@ public record PaginatedResponse<T>(
     int PageSize,
     int TotalItems,
     int TotalPages
-); 
+);

@@ -15,9 +15,8 @@ public class MemoryRateLimiter : IRateLimiter
     private readonly TimeSpan _defaultWindow;
 
     public MemoryRateLimiter(
-        ILogger<MemoryRateLimiter> logger,
-        IConfiguration configuration
-    )
+        ILogger<MemoryRateLimiter> logger, 
+        IConfiguration configuration)
     {
         _logger = logger;
         _defaultLimit = configuration.GetValue<int>("RateLimiting:DefaultLimit", 100);

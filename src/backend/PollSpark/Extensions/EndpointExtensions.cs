@@ -247,5 +247,59 @@ public static class EndpointExtensions
                     return await next(context);
                 }
             );
+
+        group
+            .MapGet(
+                "/{id}/my-vote",
+                async (Guid id, IMediator mediator) =>
+                {
+                    var query = new GetUserVoteQuery(id);
+                    var result = await mediator.Send(query);
+                    return result.Match(
+                        success => Results.Ok(success),
+                        error => Results.NotFound(error)
+                    );
+                }
+            )
+            .WithName("GetUserVote")
+            .WithDescription("Gets the current user's vote for a poll")
+            .Produces<Guid?>(StatusCodes.Status200OK)
+            .Produces<ErrorResponse>(StatusCodes.Status404NotFound);
+
+        group
+            .MapGet(
+                "/{id}/results",
+                async (Guid id, IMediator mediator) =>
+                {
+                    var query = new GetPollResultsQuery(id);
+                    var result = await mediator.Send(query);
+                    return result.Match(
+                        success => Results.Ok(success),
+                        error => Results.NotFound(error)
+                    );
+                }
+            )
+            .WithName("GetPollResults")
+            .WithDescription("Gets the results of a poll")
+            .Produces<PollResultsDto>(StatusCodes.Status200OK)
+            .Produces<ErrorResponse>(StatusCodes.Status404NotFound);
+
+        group
+            .MapGet(
+                "/my-votes",
+                async (IMediator mediator, [FromQuery] int page = 1, [FromQuery] int pageSize = 10) =>
+                {
+                    var query = new GetUserVotedPollsQuery(page, pageSize);
+                    var result = await mediator.Send(query);
+                    return result.Match(
+                        success => Results.Ok(success),
+                        error => Results.BadRequest(error)
+                    );
+                }
+            )
+            .WithName("GetUserVotedPolls")
+            .WithDescription("Gets polls that the current user has voted on")
+            .Produces<PaginatedResponse<PollDto>>(StatusCodes.Status200OK)
+            .Produces<ValidationError>(StatusCodes.Status400BadRequest);
     }
 }

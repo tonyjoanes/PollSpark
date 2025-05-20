@@ -37,12 +37,19 @@ export interface Poll {
 }
 
 export interface PollResults {
+  $id: string;
   pollId: string;
   results: {
-    option: string;
-    votes: number;
-    percentage: number;
-  }[];
+    $id: string;
+    $values: {
+      $id: string;
+      optionId: string;
+      optionText: string;
+      votes: number;
+      percentage: number;
+    }[];
+  };
+  totalVotes: number;
 }
 
 export interface User {
@@ -95,6 +102,10 @@ export const pollApi = {
   },
   getResults: (pollId: string) => 
     api.get<PollResults>(`/polls/${pollId}/results`),
+  getUserVote: (pollId: string) =>
+    api.get<string | null>(`/polls/${pollId}/my-vote`),
+  getVotedPolls: (page: number = 0, pageSize: number = 10) =>
+    api.get<PaginatedResponse<Poll>>('/polls/my-votes', { params: { page, pageSize } }),
 };
 
 export const authApi = {

@@ -5,6 +5,7 @@ import { useForm } from '@mantine/form';
 import { useMutation } from '@tanstack/react-query';
 import { pollApi } from '../services/api';
 import { DateTimePicker } from '@mantine/dates';
+import { IconCalendar } from '@tabler/icons-react';
 
 interface CreatePollFormData {
   title: string;
@@ -102,6 +103,10 @@ export function CreatePoll() {
               label="Expiration Date (Optional)"
               placeholder="Pick a date and time"
               clearable
+              valueFormat="DD MMM YYYY hh:mm A"
+              minDate={new Date()}
+              leftSection={<IconCalendar size={16} />}
+              size="md"
               {...form.getInputProps('expiresAt')}
             />
 

@@ -11,4 +11,4 @@ public record CreatePollCommand(
     bool IsPublic,
     DateTime? ExpiresAt,
     List<string> Options
-) : IRequest<OneOf<PollDto, ValidationError>>; 
+) : IRequest<OneOf<PollDto, ValidationError>>;

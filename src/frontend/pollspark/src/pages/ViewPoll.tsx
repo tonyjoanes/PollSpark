@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Title, Text, Card, Group, Stack, Button, Badge, Progress, Skeleton } from '@mantine/core';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { pollApi, type Poll, type PollResults } from '../services/api';
+import { pollApi } from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
 
 export function ViewPoll() {
@@ -17,26 +17,37 @@ export function ViewPoll() {
     enabled: !!id,
   });
 
-  // Comment out results query until backend is implemented
-  // const { data: resultsResponse, isLoading: isLoadingResults } = useQuery({
-  //   queryKey: ['poll-results', id],
-  //   queryFn: () => pollApi.getResults(id!),
-  //   enabled: !!id,
-  // });
+  const { data: userVoteResponse } = useQuery({
+    queryKey: ['user-vote', id],
+    queryFn: () => pollApi.getUserVote(id!),
+    enabled: !!id,
+  });
+
+  const { data: resultsResponse, isLoading: isLoadingResults } = useQuery({
+    queryKey: ['poll-results', id],
+    queryFn: () => pollApi.getResults(id!),
+    enabled: !!id,
+  });
 
   const poll = pollResponse?.data;
-  console.log('Full poll data:', poll);
-  // const results = resultsResponse?.data;
+  const results = resultsResponse?.data;
 
   const voteMutation = useMutation({
     mutationFn: ({ pollId, optionId }: { pollId: string; optionId: string }) =>
       pollApi.vote(pollId, optionId),
     onSuccess: () => {
-      // Comment out results invalidation until backend is implemented
-      // queryClient.invalidateQueries({ queryKey: ['poll-results', id] });
+      queryClient.invalidateQueries({ queryKey: ['poll-results', id] });
+      queryClient.invalidateQueries({ queryKey: ['user-vote', id] });
       setSelectedOption(null);
     },
   });
+
+  // Set the selected option to the user's current vote when it's loaded
+  useEffect(() => {
+    if (userVoteResponse?.data !== undefined) {
+      setSelectedOption(userVoteResponse.data);
+    }
+  }, [userVoteResponse?.data]);
 
   if (isLoadingPoll) {
     return (
@@ -72,6 +83,8 @@ export function ViewPoll() {
     voteMutation.mutate({ pollId: poll.id, optionId: selectedOption });
   };
 
+  const isPollExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
+
   return (
     <Container size="lg" py="xl">
       <Card withBorder p="lg" radius="md">
@@ -85,9 +98,14 @@ export function ViewPoll() {
                 {poll.description}
               </Text>
             </div>
-            <Badge color={poll.isPublic ? 'blue' : 'gray'}>
-              {poll.isPublic ? 'Public' : 'Private'}
-            </Badge>
+            <Group>
+              {isPollExpired && (
+                <Badge color="red">Expired</Badge>
+              )}
+              <Badge color={poll.isPublic ? 'blue' : 'gray'}>
+                {poll.isPublic ? 'Public' : 'Private'}
+              </Badge>
+            </Group>
           </Group>
 
           <Group gap="xs">
@@ -107,51 +125,61 @@ export function ViewPoll() {
             )}
           </Group>
 
+          {results && (
+            <Text size="sm" c="dimmed" ta="center">
+              Total votes: {results.totalVotes}
+            </Text>
+          )}
+
           <Stack gap="xs">
-            {poll.options.$values.map((option) => (
-              <Card
-                key={option.id}
-                withBorder
-                p="md"
-                radius="md"
-                style={{
-                  cursor: 'pointer',
-                  borderColor: selectedOption === option.id ? 'var(--mantine-color-blue-6)' : undefined,
-                }}
-                onClick={() => setSelectedOption(option.id)}
-              >
-                <Group justify="space-between">
-                  <Text>{option.text}</Text>
-                  {/* Comment out results display until backend is implemented */}
-                  {/* {results && (
-                    <Text size="sm" c="dimmed">
-                      {results.results.find((r) => r.option === option.id)?.votes || 0} votes
-                    </Text>
-                  )} */}
-                </Group>
-                {/* Comment out progress bar until backend is implemented */}
-                {/* {results && (
-                  <Progress
-                    value={results.results.find((r) => r.option === option.id)?.percentage || 0}
-                    mt="xs"
-                    size="sm"
-                  />
-                )} */}
-              </Card>
-            ))}
+            {poll.options.$values.map((option) => {
+              const result = results?.results.$values.find(r => r.optionId.toLowerCase() === option.id.toLowerCase());
+              return (
+                <Card
+                  key={option.id}
+                  withBorder
+                  p="md"
+                  radius="md"
+                  style={{
+                    cursor: isPollExpired ? 'default' : 'pointer',
+                    borderColor: selectedOption === option.id ? 'var(--mantine-color-blue-6)' : undefined,
+                  }}
+                  onClick={() => !isPollExpired && setSelectedOption(option.id)}
+                >
+                  <Group justify="space-between">
+                    <Text>{option.text}</Text>
+                    {results && (
+                      <Text size="sm" c="dimmed">
+                        {result?.votes || 0} votes ({result?.percentage || 0}%)
+                      </Text>
+                    )}
+                  </Group>
+                  {results && (
+                    <Progress
+                      value={result?.percentage || 0}
+                      mt="xs"
+                      size="sm"
+                      color={selectedOption === option.id ? 'blue' : 'gray'}
+                    />
+                  )}
+                </Card>
+              );
+            })}
           </Stack>
 
           <Group justify="space-between" mt="md">
             <Button variant="light" onClick={() => navigate('/polls')}>
               Back to Polls
             </Button>
-            <Button
-              onClick={handleVote}
-              disabled={!selectedOption || voteMutation.isPending}
-              loading={voteMutation.isPending}
-            >
-              Vote
-            </Button>
+            {!isPollExpired && (
+              <Button
+                onClick={handleVote}
+                disabled={!selectedOption || voteMutation.isPending}
+                loading={voteMutation.isPending}
+              >
+                {userVoteResponse?.data ? 'Change Vote' : 'Vote'}
+              </Button>
+            )}
           </Group>
         </Stack>
       </Card>
