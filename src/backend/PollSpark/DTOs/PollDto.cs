@@ -6,6 +6,11 @@ public record CategoryDto(
     string Description
 );
 
+public record HashtagDto(
+    Guid Id,
+    string Name
+);
+
 public record PollDto(
     Guid Id,
     string Title,
@@ -15,7 +20,8 @@ public record PollDto(
     bool IsPublic,
     string CreatedByUsername,
     List<PollOptionDto> Options,
-    List<CategoryDto> Categories
+    List<CategoryDto> Categories,
+    List<HashtagDto> Hashtags
 );
 
 public record PollOptionDto(

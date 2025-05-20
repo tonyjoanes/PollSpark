@@ -67,6 +67,7 @@ public class CreatePollCommandHandler
         var createdPoll = await _context
             .Polls.Include(p => p.Options)
             .Include(p => p.Categories)
+            .Include(p => p.Hashtags)
             .Include(p => p.CreatedBy)
             .FirstOrDefaultAsync(p => p.Id == poll.Id, cancellationToken);
 
@@ -82,11 +83,10 @@ public class CreatePollCommandHandler
             createdPoll.CreatedAt,
             createdPoll.ExpiresAt,
             createdPoll.IsPublic,
-            createdPoll.CreatedBy.Username,
+            createdPoll.CreatedBy.UserName,
             createdPoll.Options.Select(o => new PollOptionDto(o.Id, o.Text)).ToList(),
-            createdPoll
-                .Categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description))
-                .ToList()
+            [.. createdPoll.Categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description))],
+            createdPoll.Hashtags.Select(h => new HashtagDto(h.Id, h.Name)).ToList()
         );
     }
 }

@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PollSpark.Models;
 
 namespace PollSpark.Data;
 
-public class PollSparkContext : DbContext
+public class PollSparkContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 {
     public PollSparkContext(DbContextOptions<PollSparkContext> options)
         : base(options) { }
@@ -13,6 +15,7 @@ public class PollSparkContext : DbContext
     public DbSet<PollOption> PollOptions => Set<PollOption>();
     public DbSet<Vote> Votes => Set<Vote>();
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Hashtag> Hashtags => Set<Hashtag>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -66,10 +69,17 @@ public class PollSparkContext : DbContext
             .WithMany(c => c.Polls)
             .UsingEntity(j => j.ToTable("PollCategories"));
 
-        // Add unique constraint for category names
+        // Configure many-to-many relationship between Poll and Hashtag
         modelBuilder
-            .Entity<Category>()
-            .HasIndex(c => c.Name)
-            .IsUnique();
+            .Entity<Poll>()
+            .HasMany(p => p.Hashtags)
+            .WithMany(h => h.Polls)
+            .UsingEntity(j => j.ToTable("PollHashtags"));
+
+        // Add unique constraint for category names
+        modelBuilder.Entity<Category>().HasIndex(c => c.Name).IsUnique();
+
+        // Add unique constraint for hashtag names
+        modelBuilder.Entity<Hashtag>().HasIndex(h => h.Name).IsUnique();
     }
 }

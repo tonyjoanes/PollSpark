@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Container, Title, Text, Card, Group, Stack, Button, Pagination, Badge, Skeleton, SegmentedControl, Select, Paper, rem } from '@mantine/core';
+import { Container, Title, Text, Card, Group, Stack, Button, Pagination, Badge, Skeleton, SegmentedControl, Select, Paper, rem, ActionIcon, Tooltip, Chip } from '@mantine/core';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { pollApi, categoryApi, type Poll, type PollResults, type Category } from '../services/api';
+import { pollApi, categoryApi, type Poll, type PollResults, type Category, type Hashtag } from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
-import { IconClock, IconUser, IconCalendar } from '@tabler/icons-react';
+import { IconClock, IconUser, IconCalendar, IconBrandX, IconBrandLinkedin, IconHash } from '@tabler/icons-react';
 
 type PollFilter = 'all' | 'active' | 'expired' | 'voted';
 
@@ -12,6 +12,7 @@ export function Polls() {
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<PollFilter>('all');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
   const pageSize = 10;
 
   const { data: categories = [] } = useQuery({
@@ -19,9 +20,17 @@ export function Polls() {
     queryFn: () => categoryApi.getCategories().then(res => res.data.$values),
   });
 
+  const { data: popularHashtags = [] } = useQuery({
+    queryKey: ['popular-hashtags'],
+    queryFn: () => pollApi.getPopularHashtags().then(res => res.data.$values),
+  });
+
   const { data: response, isLoading, error } = useQuery({
-    queryKey: ['polls', page, filter, selectedCategory],
+    queryKey: ['polls', page, filter, selectedCategory, selectedHashtag],
     queryFn: () => {
+      if (selectedHashtag) {
+        return pollApi.getPollsByHashtag(selectedHashtag, page, pageSize);
+      }
       if (filter === 'voted') {
         return pollApi.getVotedPolls(page, pageSize);
       }
@@ -30,11 +39,11 @@ export function Polls() {
   });
 
   const { data: resultsResponses } = useQuery({
-    queryKey: ['poll-results', response?.data?.items?.$values?.map(p => p.id)],
+    queryKey: ['poll-results', response?.data?.items?.$values?.map((p: Poll) => p.id)],
     queryFn: async () => {
       const polls = response?.data?.items?.$values || [];
       const results = await Promise.all(
-        polls.map(poll => pollApi.getResults(poll.id).catch(() => null))
+        polls.map((poll: Poll) => pollApi.getResults(poll.id).catch(() => null))
       );
       return results.reduce((acc, result, index) => {
         if (result?.data) {
@@ -55,10 +64,10 @@ export function Polls() {
   console.log('Items type:', items ? typeof items : 'undefined');
   console.log('Is array?', Array.isArray(items));
 
-  const filteredItems = items.filter((poll) => {
+  const filteredItems = items.filter((poll: Poll) => {
     const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
     const matchesCategory = !selectedCategory || 
-      poll.categories.$values.some(cat => cat.id === selectedCategory);
+      poll.categories.$values.some((cat: { id: string }) => cat.id === selectedCategory);
     
     switch (filter) {
       case 'active':
@@ -83,39 +92,62 @@ export function Polls() {
   return (
     <Container size="lg" py="xl">
       <Paper radius="md" p="xl" withBorder shadow="sm" mb="xl" style={{ background: 'linear-gradient(45deg, #f3f4f6 0%, #ffffff 100%)' }}>
-        <Group justify="space-between" align="center">
-          <Title order={1} style={{ 
-            background: 'linear-gradient(45deg, #228be6 0%, #4dabf7 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            letterSpacing: '-0.5px'
-          }}>
-            Browse Polls
-          </Title>
-          <Group>
-            <Select
-              placeholder="Filter by category"
-              clearable
-              value={selectedCategory}
-              onChange={setSelectedCategory}
-              data={categories.map(cat => ({ value: cat.id, label: cat.name }))}
-              style={{ width: 200 }}
-            />
-            <SegmentedControl
-              value={filter}
-              onChange={(value) => {
-                setFilter(value as PollFilter);
-                setPage(1);
-              }}
-              data={[
-                { label: 'All', value: 'all' },
-                { label: 'Active', value: 'active' },
-                { label: 'Expired', value: 'expired' },
-                { label: 'My Votes', value: 'voted' },
-              ]}
-            />
+        <Stack gap="md">
+          <Group justify="space-between" align="center">
+            <Title order={1} style={{ 
+              background: 'linear-gradient(45deg, #228be6 0%, #4dabf7 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              letterSpacing: '-0.5px'
+            }}>
+              Browse Polls
+            </Title>
+            <Group>
+              <Select
+                placeholder="Filter by category"
+                clearable
+                value={selectedCategory}
+                onChange={setSelectedCategory}
+                data={categories.map(cat => ({ value: cat.id, label: cat.name }))}
+                style={{ width: 200 }}
+              />
+              <SegmentedControl
+                value={filter}
+                onChange={(value) => {
+                  setFilter(value as PollFilter);
+                  setPage(1);
+                }}
+                data={[
+                  { label: 'All', value: 'all' },
+                  { label: 'Active', value: 'active' },
+                  { label: 'Expired', value: 'expired' },
+                  { label: 'My Votes', value: 'voted' },
+                ]}
+              />
+            </Group>
           </Group>
-        </Group>
+
+          {popularHashtags.length > 0 && (
+            <Group gap="xs">
+              <Text size="sm" fw={500} c="dimmed">Popular hashtags:</Text>
+              {popularHashtags.map((hashtag: Hashtag) => (
+                <Chip
+                  key={hashtag.id}
+                  checked={selectedHashtag === hashtag.name}
+                  onChange={() => {
+                    setSelectedHashtag(selectedHashtag === hashtag.name ? null : hashtag.name);
+                    setPage(1);
+                  }}
+                  variant="light"
+                  color="blue"
+                  size="sm"
+                >
+                  #{hashtag.name}
+                </Chip>
+              ))}
+            </Group>
+          )}
+        </Stack>
       </Paper>
 
       <Stack gap="md">
@@ -221,6 +253,26 @@ export function Polls() {
                     </Group>
                   )}
 
+                  {poll.hashtags.$values.length > 0 && (
+                    <Group gap="xs">
+                      {poll.hashtags.$values.map(hashtag => (
+                        <Chip
+                          key={hashtag.id}
+                          variant="light"
+                          color="blue"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedHashtag(hashtag.name);
+                            setPage(1);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          #{hashtag.name}
+                        </Chip>
+                      ))}
+                    </Group>
+                  )}
+
                   {results && isExpired && (
                     <Text size="sm" c="dimmed" ta="center" fw={500}>
                       Total votes: {results.totalVotes}
@@ -229,38 +281,55 @@ export function Polls() {
 
                   <Group gap="xs" mt="xs">
                     {poll.options.$values.map((option) => {
-                      const result = results?.results.$values.find(r => r.optionId.toLowerCase() === option.id.toLowerCase());
+                      const result = results?.results.$values.find((r: { optionId: string }) => r.optionId.toLowerCase() === option.id.toLowerCase());
                       return (
                         <Button
                           key={option.id}
-                          variant="light"
+                          variant="filled"
                           color="blue"
-                          size="sm"
+                          size="md"
                           component={Link}
                           to={`/polls/${poll.id}`}
                           style={{
-                            minWidth: 120,
+                            minWidth: 140,
                             height: 'auto',
-                            padding: '8px 16px',
+                            padding: '12px 20px',
                             whiteSpace: 'normal',
                             textAlign: 'left',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'flex-start',
-                            gap: 4,
-                            background: 'linear-gradient(45deg, #e7f5ff 0%, #ffffff 100%)',
-                            borderColor: '#74c0fc',
+                            gap: 6,
+                            background: 'linear-gradient(45deg, #228be6 0%, #339af0 100%)',
+                            border: 'none',
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                            transition: 'all 0.2s ease',
                             '&:hover': {
-                              background: 'linear-gradient(45deg, #d0ebff 0%, #e7f5ff 100%)',
-                              transform: 'translateY(-1px)',
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
+                              background: 'linear-gradient(45deg, #1c7ed6 0%, #228be6 100%)',
                             }
                           }}
                         >
-                          <Text size="sm" style={{ lineHeight: 1.2 }}>
+                          <Text 
+                            size="sm" 
+                            fw={500}
+                            style={{ 
+                              lineHeight: 1.4,
+                              color: 'white',
+                              letterSpacing: '0.2px'
+                            }}
+                          >
                             {option.text}
                           </Text>
                           {results && isExpired && (
-                            <Text size="xs" c="dimmed">
+                            <Text 
+                              size="xs" 
+                              style={{ 
+                                color: 'rgba(255, 255, 255, 0.9)',
+                                fontWeight: 500
+                              }}
+                            >
                               {result?.votes || 0} votes
                             </Text>
                           )}
@@ -270,21 +339,49 @@ export function Polls() {
                   </Group>
 
                   <Group justify="flex-end" mt="md">
-                    <Button 
-                      component={Link} 
-                      to={`/polls/${poll.id}`} 
-                      variant="light"
-                      color="blue"
-                      style={{
-                        background: 'linear-gradient(45deg, #228be6 0%, #4dabf7 100%)',
-                        color: 'white',
-                        '&:hover': {
-                          background: 'linear-gradient(45deg, #1c7ed6 0%, #339af0 100%)',
-                        }
-                      }}
-                    >
-                      View Poll
-                    </Button>
+                    <Group gap="xs">
+                      <Tooltip label="Share on X">
+                        <ActionIcon
+                          variant="light"
+                          color="blue"
+                          onClick={() => {
+                            const text = encodeURIComponent(`Check out this poll: ${poll.title} - ${poll.description}`);
+                            const url = encodeURIComponent(window.location.origin + `/polls/${poll.id}`);
+                            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+                          }}
+                        >
+                          <IconBrandX size={18} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Share on LinkedIn">
+                        <ActionIcon
+                          variant="light"
+                          color="blue"
+                          onClick={() => {
+                            const text = encodeURIComponent(`Check out this poll: ${poll.title} - ${poll.description}`);
+                            const url = encodeURIComponent(window.location.origin + `/polls/${poll.id}`);
+                            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+                          }}
+                        >
+                          <IconBrandLinkedin size={18} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Button 
+                        component={Link} 
+                        to={`/polls/${poll.id}`} 
+                        variant="light"
+                        color="blue"
+                        style={{
+                          background: 'linear-gradient(45deg, #228be6 0%, #4dabf7 100%)',
+                          color: 'white',
+                          '&:hover': {
+                            background: 'linear-gradient(45deg, #1c7ed6 0%, #339af0 100%)',
+                          }
+                        }}
+                      >
+                        View Poll
+                      </Button>
+                    </Group>
                   </Group>
                 </Stack>
               </Card>

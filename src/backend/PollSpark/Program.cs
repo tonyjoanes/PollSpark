@@ -1,13 +1,19 @@
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PollSpark.Data;
 using PollSpark.Extensions;
 using PollSpark.Features.Auth.Services;
+using PollSpark.Handlers;
+using PollSpark.Models;
 using PollSpark.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -86,6 +92,11 @@ builder.Services.AddDbContext<PollSparkContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
+// Add Identity
+builder.Services.AddIdentity<User, IdentityRole<Guid>>()
+    .AddEntityFrameworkStores<PollSparkContext>()
+    .AddDefaultTokenProviders();
+
 // Add Auth Service
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -141,6 +152,33 @@ app.MapUserEndpoints();
 app.MapPollEndpoints();
 app.MapCategoryEndpoints();
 
+// Hashtag endpoints
+app.MapGet(
+    "/api/polls/hashtag/{hashtag}",
+    async (
+        string hashtag,
+        IMediator mediator,
+        [FromQuery] int page = 0,
+        [FromQuery] int pageSize = 10
+    ) =>
+    {
+        var result = await mediator.Send(new GetPollsByHashtag.Query(hashtag, page, pageSize));
+        return result.Match(polls => Results.Ok(polls), error => Results.NotFound(error.Message));
+    }
+);
+
+app.MapGet(
+    "/api/hashtags/popular",
+    async (IMediator mediator) =>
+    {
+        var result = await mediator.Send(new GetPopularHashtags.Query());
+        return result.Match(
+            hashtags => Results.Ok(hashtags),
+            error => Results.NotFound(error.Message)
+        );
+    }
+);
+
 // Add your endpoints here
 app.MapGet("/", () => "Welcome to PollSpark!");
 
@@ -148,9 +186,10 @@ app.MapGet("/", () => "Welcome to PollSpark!");
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<PollSparkContext>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
     await context.Database.MigrateAsync();
     await DbSeeder.SeedCategories(context);
-    await DbSeeder.SeedPolls(context);
+    await DbSeeder.SeedPolls(context, userManager);
 }
 
 app.Run();

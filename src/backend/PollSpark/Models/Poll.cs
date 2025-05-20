@@ -13,4 +13,5 @@ public record Poll
     public ICollection<PollOption> Options { get; set; } = new List<PollOption>();
     public ICollection<Vote> Votes { get; set; } = new List<Vote>();
     public ICollection<Category> Categories { get; set; } = new List<Category>();
+    public ICollection<Hashtag> Hashtags { get; set; } = new List<Hashtag>();
 }

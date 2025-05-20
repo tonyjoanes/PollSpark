@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PollSpark.Data;
 
@@ -10,9 +11,11 @@ using PollSpark.Data;
 namespace PollSpark.Migrations
 {
     [DbContext(typeof(PollSparkContext))]
-    partial class PollSparkContextModelSnapshot : ModelSnapshot
+    [Migration("20250520220202_AddHashtagsTable")]
+    partial class AddHashtagsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");

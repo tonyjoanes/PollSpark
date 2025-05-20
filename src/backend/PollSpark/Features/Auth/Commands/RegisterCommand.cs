@@ -33,14 +33,14 @@ public class RegisterCommandHandler
             return new AuthError("Email already registered");
         }
 
-        if (await _context.Users.AnyAsync(u => u.Username == request.Username))
+        if (await _context.Users.AnyAsync(u => u.UserName == request.Username))
         {
             return new AuthError("Username already taken");
         }
 
         var user = new User
         {
-            Username = request.Username,
+            UserName = request.Username,
             Email = request.Email,
             PasswordHash = _authService.HashPassword(request.Password),
             CreatedAt = DateTime.UtcNow,
@@ -50,6 +50,6 @@ public class RegisterCommandHandler
         await _context.SaveChangesAsync(cancellationToken);
 
         var token = _authService.GenerateJwtToken(user);
-        return new AuthResponse(token, user.Username);
+        return new AuthResponse(token, user.UserName);
     }
 }

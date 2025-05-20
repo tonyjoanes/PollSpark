@@ -27,6 +27,7 @@ public class GetPollByIdQueryHandler
         var poll = await _context
             .Polls.Include(p => p.Options)
             .Include(p => p.Categories)
+            .Include(p => p.Hashtags)
             .Include(p => p.CreatedBy)
             .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
 
@@ -47,9 +48,10 @@ public class GetPollByIdQueryHandler
             poll.CreatedAt,
             poll.ExpiresAt,
             poll.IsPublic,
-            poll.CreatedBy.Username,
+            poll.CreatedBy.UserName,
             poll.Options.Select(o => new PollOptionDto(o.Id, o.Text)).ToList(),
-            poll.Categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description)).ToList()
+            poll.Categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description)).ToList(),
+            poll.Hashtags.Select(h => new HashtagDto(h.Id, h.Name)).ToList()
         );
     }
 }

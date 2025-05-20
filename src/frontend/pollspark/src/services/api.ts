@@ -42,6 +42,9 @@ export interface Poll {
       description: string;
     }[];
   };
+  hashtags: {
+    $values: Hashtag[];
+  };
 }
 
 export interface PollResults {
@@ -92,6 +95,11 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
+export type Hashtag = {
+  id: string;
+  name: string;
+};
+
 export const pollApi = {
   getPolls: (page: number = 0, pageSize: number = 10) => 
     api.get<PaginatedResponse<Poll>>('/polls', { params: { page, pageSize } }),
@@ -127,6 +135,14 @@ export const pollApi = {
     api.get<string | null>(`/polls/${pollId}/my-vote`),
   getVotedPolls: (page: number = 0, pageSize: number = 10) =>
     api.get<PaginatedResponse<Poll>>('/polls/my-votes', { params: { page, pageSize } }),
+  getPollsByHashtag: async (hashtag: string, page: number, pageSize: number) => {
+    const response = await api.get(`/polls/hashtag/${hashtag}?page=${page}&pageSize=${pageSize}`);
+    return response.data;
+  },
+  getPopularHashtags: async () => {
+    const response = await api.get('/hashtags/popular');
+    return response.data;
+  },
 };
 
 export const authApi = {

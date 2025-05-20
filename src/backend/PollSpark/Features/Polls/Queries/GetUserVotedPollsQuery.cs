@@ -84,9 +84,10 @@ public class GetUserVotedPollsQueryHandler
                 p.CreatedAt,
                 p.ExpiresAt,
                 p.IsPublic,
-                p.CreatedBy.Username,
+                p.CreatedBy.UserName,
                 p.Options.Select(o => new PollOptionDto(o.Id, o.Text)).ToList(),
-                p.Categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description)).ToList()
+                p.Categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description)).ToList(),
+                p.Hashtags.Select(h => new HashtagDto(h.Id, h.Name)).ToList()
             ))
             .ToList();
 

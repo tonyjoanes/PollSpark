@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PollSpark.Models;
 
@@ -76,12 +77,13 @@ public static class DbSeeder
         await context.SaveChangesAsync();
     }
 
-    public static async Task SeedPolls(PollSparkContext context)
+    public static async Task SeedPolls(PollSparkContext context, UserManager<User> userManager)
     {
         // Clear existing polls and related data
         context.Votes.RemoveRange(context.Votes);
         context.PollOptions.RemoveRange(context.PollOptions);
         context.Polls.RemoveRange(context.Polls);
+        context.Hashtags.RemoveRange(context.Hashtags);
         await context.SaveChangesAsync();
 
         // Get all categories
@@ -89,21 +91,76 @@ public static class DbSeeder
         var random = new Random();
 
         // Get or create a default user for polls
-        var defaultUser = await context.Users.FirstOrDefaultAsync(u => u.Username == "admin");
-        
+        var defaultUser = await userManager.FindByNameAsync("admin");
+
         if (defaultUser == null)
         {
             defaultUser = new User
             {
-                Id = Guid.NewGuid(),
-                Username = "admin",
+                UserName = "admin",
                 Email = "admin@pollspark.com",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
                 CreatedAt = DateTime.UtcNow,
             };
-            context.Users.Add(defaultUser);
-            await context.SaveChangesAsync();
+            var result = await userManager.CreateAsync(defaultUser, "Admin123!");
+            if (!result.Succeeded)
+            {
+                throw new Exception(
+                    "Failed to create default user: "
+                        + string.Join(", ", result.Errors.Select(e => e.Description))
+                );
+            }
         }
+
+        // Create hashtags
+        var hashtags = new Dictionary<string, Hashtag>();
+        var allHashtags = new[]
+        {
+            "coding",
+            "programming",
+            "tech",
+            "learning",
+            "gadgets",
+            "innovation",
+            "future",
+            "movies",
+            "entertainment",
+            "cinema",
+            "film",
+            "streaming",
+            "tvshows",
+            "basketball",
+            "sports",
+            "NBA",
+            "GOAT",
+            "food",
+            "pizza",
+            "dining",
+            "taste",
+            "travel",
+            "vacation",
+            "wanderlust",
+            "adventure",
+            "business",
+            "career",
+            "leadership",
+            "success",
+            "education",
+            "study",
+            "knowledge",
+            "fitness",
+            "health",
+            "wellness",
+            "workout",
+        };
+
+        foreach (var hashtagName in allHashtags)
+        {
+            var hashtag = new Hashtag { Id = Guid.NewGuid(), Name = hashtagName };
+            hashtags[hashtagName] = hashtag;
+        }
+
+        await context.Hashtags.AddRangeAsync(hashtags.Values);
+        await context.SaveChangesAsync();
 
         var polls = new List<Poll>
         {
@@ -111,9 +168,9 @@ public static class DbSeeder
             new()
             {
                 Id = Guid.NewGuid(),
-                Title = "Best Programming Language for Beginners",
+                Title = "Best Programming Language for Beginners #coding #programming",
                 Description =
-                    "Which programming language would you recommend for someone just starting their coding journey?",
+                    "Which programming language would you recommend for someone just starting their coding journey? #tech #learning",
                 CreatedAt = DateTime.UtcNow.AddDays(-5),
                 ExpiresAt = DateTime.UtcNow.AddDays(25),
                 IsPublic = true,
@@ -126,12 +183,20 @@ public static class DbSeeder
                     new() { Id = Guid.NewGuid(), Text = "C#" },
                 },
                 Categories = new List<Category> { categories.First(c => c.Name == "Technology") },
+                Hashtags = new List<Hashtag>
+                {
+                    hashtags["coding"],
+                    hashtags["programming"],
+                    hashtags["tech"],
+                    hashtags["learning"],
+                },
             },
             new()
             {
                 Id = Guid.NewGuid(),
-                Title = "Most Anticipated Tech Gadget of 2024",
-                Description = "Which upcoming tech gadget are you most excited about?",
+                Title = "Most Anticipated Tech Gadget of 2024 #tech #gadgets",
+                Description =
+                    "Which upcoming tech gadget are you most excited about? #innovation #future",
                 CreatedAt = DateTime.UtcNow.AddDays(-3),
                 ExpiresAt = DateTime.UtcNow.AddDays(27),
                 IsPublic = true,
@@ -144,13 +209,20 @@ public static class DbSeeder
                     new() { Id = Guid.NewGuid(), Text = "Meta Quest 3" },
                 },
                 Categories = new List<Category> { categories.First(c => c.Name == "Technology") },
+                Hashtags = new List<Hashtag>
+                {
+                    hashtags["tech"],
+                    hashtags["gadgets"],
+                    hashtags["innovation"],
+                    hashtags["future"],
+                },
             },
             // Entertainment Polls
             new()
             {
                 Id = Guid.NewGuid(),
-                Title = "Best Movie Genre",
-                Description = "What's your favorite movie genre?",
+                Title = "Best Movie Genre #movies #entertainment",
+                Description = "What's your favorite movie genre? #cinema #film",
                 CreatedAt = DateTime.UtcNow.AddDays(-7),
                 ExpiresAt = DateTime.UtcNow.AddDays(23),
                 IsPublic = true,
@@ -167,12 +239,19 @@ public static class DbSeeder
                 {
                     categories.First(c => c.Name == "Entertainment"),
                 },
+                Hashtags = new List<Hashtag>
+                {
+                    hashtags["movies"],
+                    hashtags["entertainment"],
+                    hashtags["cinema"],
+                    hashtags["film"],
+                },
             },
             new()
             {
                 Id = Guid.NewGuid(),
-                Title = "Best Streaming Platform",
-                Description = "Which streaming service do you prefer?",
+                Title = "Best Streaming Platform #streaming #entertainment",
+                Description = "Which streaming service do you prefer? #movies #tvshows",
                 CreatedAt = DateTime.UtcNow.AddDays(-2),
                 ExpiresAt = DateTime.UtcNow.AddDays(28),
                 IsPublic = true,
@@ -189,13 +268,21 @@ public static class DbSeeder
                 {
                     categories.First(c => c.Name == "Entertainment"),
                 },
+                Hashtags = new List<Hashtag>
+                {
+                    hashtags["streaming"],
+                    hashtags["entertainment"],
+                    hashtags["movies"],
+                    hashtags["tvshows"],
+                },
             },
             // Sports Polls
             new()
             {
                 Id = Guid.NewGuid(),
-                Title = "Greatest Basketball Player of All Time",
-                Description = "Who do you think is the greatest basketball player in history?",
+                Title = "Greatest Basketball Player of All Time #basketball #sports",
+                Description =
+                    "Who do you think is the greatest basketball player in history? #NBA #GOAT",
                 CreatedAt = DateTime.UtcNow.AddDays(-4),
                 ExpiresAt = DateTime.UtcNow.AddDays(26),
                 IsPublic = true,
@@ -208,13 +295,20 @@ public static class DbSeeder
                     new() { Id = Guid.NewGuid(), Text = "Magic Johnson" },
                 },
                 Categories = new List<Category> { categories.First(c => c.Name == "Sports") },
+                Hashtags = new List<Hashtag>
+                {
+                    hashtags["basketball"],
+                    hashtags["sports"],
+                    hashtags["NBA"],
+                    hashtags["GOAT"],
+                },
             },
             // Food & Dining Polls
             new()
             {
                 Id = Guid.NewGuid(),
-                Title = "Favorite Pizza Topping",
-                Description = "What's your go-to pizza topping?",
+                Title = "Favorite Pizza Topping #food #pizza",
+                Description = "What's your go-to pizza topping? #dining #taste",
                 CreatedAt = DateTime.UtcNow.AddDays(-1),
                 ExpiresAt = DateTime.UtcNow.AddDays(29),
                 IsPublic = true,
@@ -231,13 +325,20 @@ public static class DbSeeder
                 {
                     categories.First(c => c.Name == "Food & Dining"),
                 },
+                Hashtags = new List<Hashtag>
+                {
+                    hashtags["food"],
+                    hashtags["pizza"],
+                    hashtags["dining"],
+                    hashtags["taste"],
+                },
             },
             // Travel Polls
             new()
             {
                 Id = Guid.NewGuid(),
-                Title = "Dream Vacation Destination",
-                Description = "Where would you most like to travel?",
+                Title = "Dream Vacation Destination #travel #vacation",
+                Description = "Where would you most like to travel? #wanderlust #adventure",
                 CreatedAt = DateTime.UtcNow.AddDays(-6),
                 ExpiresAt = DateTime.UtcNow.AddDays(24),
                 IsPublic = true,
@@ -251,13 +352,21 @@ public static class DbSeeder
                     new() { Id = Guid.NewGuid(), Text = "Sydney, Australia" },
                 },
                 Categories = new List<Category> { categories.First(c => c.Name == "Travel") },
+                Hashtags = new List<Hashtag>
+                {
+                    hashtags["travel"],
+                    hashtags["vacation"],
+                    hashtags["wanderlust"],
+                    hashtags["adventure"],
+                },
             },
             // Business Polls
             new()
             {
                 Id = Guid.NewGuid(),
-                Title = "Most Important Business Skill",
-                Description = "What do you think is the most crucial skill for business success?",
+                Title = "Most Important Business Skill #business #career",
+                Description =
+                    "What do you think is the most crucial skill for business success? #leadership #success",
                 CreatedAt = DateTime.UtcNow.AddDays(-8),
                 ExpiresAt = DateTime.UtcNow.AddDays(22),
                 IsPublic = true,
@@ -270,13 +379,20 @@ public static class DbSeeder
                     new() { Id = Guid.NewGuid(), Text = "Strategic Planning" },
                 },
                 Categories = new List<Category> { categories.First(c => c.Name == "Business") },
+                Hashtags = new List<Hashtag>
+                {
+                    hashtags["business"],
+                    hashtags["career"],
+                    hashtags["leadership"],
+                    hashtags["success"],
+                },
             },
             // Education Polls
             new()
             {
                 Id = Guid.NewGuid(),
-                Title = "Most Effective Learning Method",
-                Description = "What's your preferred way of learning new things?",
+                Title = "Most Effective Learning Method #education #learning",
+                Description = "What's your preferred way of learning new things? #study #knowledge",
                 CreatedAt = DateTime.UtcNow.AddDays(-9),
                 ExpiresAt = DateTime.UtcNow.AddDays(21),
                 IsPublic = true,
@@ -289,13 +405,20 @@ public static class DbSeeder
                     new() { Id = Guid.NewGuid(), Text = "Group Study" },
                 },
                 Categories = new List<Category> { categories.First(c => c.Name == "Education") },
+                Hashtags = new List<Hashtag>
+                {
+                    hashtags["education"],
+                    hashtags["learning"],
+                    hashtags["study"],
+                    hashtags["knowledge"],
+                },
             },
             // Health & Wellness Polls
             new()
             {
                 Id = Guid.NewGuid(),
-                Title = "Favorite Exercise Type",
-                Description = "What's your preferred way to stay fit?",
+                Title = "Favorite Exercise Type #fitness #health",
+                Description = "What's your preferred way to stay fit? #wellness #workout",
                 CreatedAt = DateTime.UtcNow.AddDays(-10),
                 ExpiresAt = DateTime.UtcNow.AddDays(20),
                 IsPublic = true,
@@ -311,6 +434,13 @@ public static class DbSeeder
                 Categories = new List<Category>
                 {
                     categories.First(c => c.Name == "Health & Wellness"),
+                },
+                Hashtags = new List<Hashtag>
+                {
+                    hashtags["fitness"],
+                    hashtags["health"],
+                    hashtags["wellness"],
+                    hashtags["workout"],
                 },
             },
         };
@@ -343,7 +473,7 @@ public static class DbSeeder
                             PollId = poll.Id,
                             OptionId = option.Id,
                             CreatedAt = DateTime.UtcNow.AddHours(-random.Next(1, 168)), // Random time in the last week
-                            IpAddress = ip
+                            IpAddress = ip,
                         }
                     );
                 }

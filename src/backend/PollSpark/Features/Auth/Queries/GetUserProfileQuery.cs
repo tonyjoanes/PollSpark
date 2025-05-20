@@ -56,7 +56,7 @@ public class GetUserProfileQueryHandler
 
         return new UserProfileDto(
             user.Id,
-            user.Username,
+            user.UserName,
             user.Email,
             user.CreatedAt,
             user.CreatedPolls.Count
