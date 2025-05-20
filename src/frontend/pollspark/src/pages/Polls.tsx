@@ -1,19 +1,26 @@
 import { useState } from 'react';
-import { Container, Title, Text, Card, Group, Stack, Button, Pagination, Badge, Skeleton, SegmentedControl } from '@mantine/core';
+import { Container, Title, Text, Card, Group, Stack, Button, Pagination, Badge, Skeleton, SegmentedControl, Select, Paper, rem } from '@mantine/core';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { pollApi, type Poll, type PollResults } from '../services/api';
+import { pollApi, categoryApi, type Poll, type PollResults, type Category } from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
+import { IconClock, IconUser, IconCalendar } from '@tabler/icons-react';
 
 type PollFilter = 'all' | 'active' | 'expired' | 'voted';
 
 export function Polls() {
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<PollFilter>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const pageSize = 10;
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoryApi.getCategories().then(res => res.data.$values),
+  });
+
   const { data: response, isLoading, error } = useQuery({
-    queryKey: ['polls', page, filter],
+    queryKey: ['polls', page, filter, selectedCategory],
     queryFn: () => {
       if (filter === 'voted') {
         return pollApi.getVotedPolls(page, pageSize);
@@ -50,13 +57,16 @@ export function Polls() {
 
   const filteredItems = items.filter((poll) => {
     const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
+    const matchesCategory = !selectedCategory || 
+      poll.categories.$values.some(cat => cat.id === selectedCategory);
+    
     switch (filter) {
       case 'active':
-        return !isExpired;
+        return !isExpired && matchesCategory;
       case 'expired':
-        return isExpired;
+        return isExpired && matchesCategory;
       default:
-        return true;
+        return matchesCategory;
     }
   });
 
@@ -72,22 +82,41 @@ export function Polls() {
 
   return (
     <Container size="lg" py="xl">
-      <Group justify="space-between" align="center" mb="xl">
-        <Title order={1}>Browse Polls</Title>
-        <SegmentedControl
-          value={filter}
-          onChange={(value) => {
-            setFilter(value as PollFilter);
-            setPage(1); // Reset to first page when changing filter
-          }}
-          data={[
-            { label: 'All', value: 'all' },
-            { label: 'Active', value: 'active' },
-            { label: 'Expired', value: 'expired' },
-            { label: 'My Votes', value: 'voted' },
-          ]}
-        />
-      </Group>
+      <Paper radius="md" p="xl" withBorder shadow="sm" mb="xl" style={{ background: 'linear-gradient(45deg, #f3f4f6 0%, #ffffff 100%)' }}>
+        <Group justify="space-between" align="center">
+          <Title order={1} style={{ 
+            background: 'linear-gradient(45deg, #228be6 0%, #4dabf7 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            letterSpacing: '-0.5px'
+          }}>
+            Browse Polls
+          </Title>
+          <Group>
+            <Select
+              placeholder="Filter by category"
+              clearable
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+              data={categories.map(cat => ({ value: cat.id, label: cat.name }))}
+              style={{ width: 200 }}
+            />
+            <SegmentedControl
+              value={filter}
+              onChange={(value) => {
+                setFilter(value as PollFilter);
+                setPage(1);
+              }}
+              data={[
+                { label: 'All', value: 'all' },
+                { label: 'Active', value: 'active' },
+                { label: 'Expired', value: 'expired' },
+                { label: 'My Votes', value: 'voted' },
+              ]}
+            />
+          </Group>
+        </Group>
+      </Paper>
 
       <Stack gap="md">
         {isLoading ? (
@@ -110,11 +139,24 @@ export function Polls() {
             const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
             const results = resultsResponses?.[poll.id];
             return (
-              <Card key={poll.id} withBorder p="lg" radius="md">
-                <Stack gap="xs">
+              <Card 
+                key={poll.id} 
+                withBorder 
+                p="lg" 
+                radius="md"
+                style={{
+                  background: 'linear-gradient(45deg, #ffffff 0%, #f8f9fa 100%)',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                  }
+                }}
+              >
+                <Stack gap="md">
                   <Group justify="space-between" align="flex-start">
                     <div>
-                      <Title order={3} mb="xs">
+                      <Title order={3} mb="xs" style={{ color: '#1c7ed6' }}>
                         {poll.title}
                       </Title>
                       <Text c="dimmed" size="sm" mb="md">
@@ -123,33 +165,64 @@ export function Polls() {
                     </div>
                     <Group>
                       {isExpired && (
-                        <Badge color="red">Expired</Badge>
+                        <Badge color="red" variant="light" size="lg">Expired</Badge>
                       )}
-                      <Badge color={poll.isPublic ? 'blue' : 'gray'}>
+                      <Badge 
+                        color={poll.isPublic ? 'blue' : 'gray'} 
+                        variant="light"
+                        size="lg"
+                      >
                         {poll.isPublic ? 'Public' : 'Private'}
                       </Badge>
                     </Group>
                   </Group>
 
-                  <Group gap="xs">
-                    <Text size="sm" c="dimmed">
-                      Created by {poll.createdByUsername}
-                    </Text>
-                    <Text size="sm" c="dimmed">
-                      • {formatDistanceToNow(new Date(poll.createdAt), { addSuffix: true })}
-                    </Text>
+                  <Group gap="xs" c="dimmed">
+                    <Group gap={4}>
+                      <IconUser size={16} />
+                      <Text size="sm">{poll.createdByUsername}</Text>
+                    </Group>
+                    <Text size="sm">•</Text>
+                    <Group gap={4}>
+                      <IconClock size={16} />
+                      <Text size="sm">
+                        {formatDistanceToNow(new Date(poll.createdAt), { addSuffix: true })}
+                      </Text>
+                    </Group>
                     {poll.expiresAt && (
                       <>
-                        <Text size="sm" c="dimmed">•</Text>
-                        <Text size="sm" c="dimmed">
-                          Expires {formatDistanceToNow(new Date(poll.expiresAt), { addSuffix: true })}
-                        </Text>
+                        <Text size="sm">•</Text>
+                        <Group gap={4}>
+                          <IconCalendar size={16} />
+                          <Text size="sm">
+                            Expires {formatDistanceToNow(new Date(poll.expiresAt), { addSuffix: true })}
+                          </Text>
+                        </Group>
                       </>
                     )}
                   </Group>
 
+                  {poll.categories.$values.length > 0 && (
+                    <Group gap="xs">
+                      {poll.categories.$values.map(category => (
+                        <Badge 
+                          key={category.id} 
+                          color="teal" 
+                          variant="light"
+                          size="lg"
+                          style={{ 
+                            background: 'linear-gradient(45deg, #12b886 0%, #20c997 100%)',
+                            color: 'white'
+                          }}
+                        >
+                          {category.name}
+                        </Badge>
+                      ))}
+                    </Group>
+                  )}
+
                   {results && isExpired && (
-                    <Text size="sm" c="dimmed" ta="center">
+                    <Text size="sm" c="dimmed" ta="center" fw={500}>
                       Total votes: {results.totalVotes}
                     </Text>
                   )}
@@ -158,26 +231,58 @@ export function Polls() {
                     {poll.options.$values.map((option) => {
                       const result = results?.results.$values.find(r => r.optionId.toLowerCase() === option.id.toLowerCase());
                       return (
-                        <Badge 
-                          key={option.id} 
+                        <Button
+                          key={option.id}
                           variant="light"
-                          style={{ minWidth: 80, padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}
+                          color="blue"
+                          size="sm"
+                          component={Link}
+                          to={`/polls/${poll.id}`}
+                          style={{
+                            minWidth: 120,
+                            height: 'auto',
+                            padding: '8px 16px',
+                            whiteSpace: 'normal',
+                            textAlign: 'left',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                            gap: 4,
+                            background: 'linear-gradient(45deg, #e7f5ff 0%, #ffffff 100%)',
+                            borderColor: '#74c0fc',
+                            '&:hover': {
+                              background: 'linear-gradient(45deg, #d0ebff 0%, #e7f5ff 100%)',
+                              transform: 'translateY(-1px)',
+                            }
+                          }}
                         >
-                          <Group gap={4} align="center" style={{ flexWrap: 'nowrap' }}>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 90 }}>{option.text}</span>
-                            {results && isExpired && (
-                              <Text size="xs" c="dimmed" span>
-                                ({result?.votes || 0})
-                              </Text>
-                            )}
-                          </Group>
-                        </Badge>
+                          <Text size="sm" style={{ lineHeight: 1.2 }}>
+                            {option.text}
+                          </Text>
+                          {results && isExpired && (
+                            <Text size="xs" c="dimmed">
+                              {result?.votes || 0} votes
+                            </Text>
+                          )}
+                        </Button>
                       );
                     })}
                   </Group>
 
                   <Group justify="flex-end" mt="md">
-                    <Button component={Link} to={`/polls/${poll.id}`} variant="light">
+                    <Button 
+                      component={Link} 
+                      to={`/polls/${poll.id}`} 
+                      variant="light"
+                      color="blue"
+                      style={{
+                        background: 'linear-gradient(45deg, #228be6 0%, #4dabf7 100%)',
+                        color: 'white',
+                        '&:hover': {
+                          background: 'linear-gradient(45deg, #1c7ed6 0%, #339af0 100%)',
+                        }
+                      }}
+                    >
                       View Poll
                     </Button>
                   </Group>
@@ -195,6 +300,13 @@ export function Polls() {
               onChange={setPage}
               withEdges
               size="md"
+              styles={{
+                control: {
+                  '&[data-active]': {
+                    background: 'linear-gradient(45deg, #228be6 0%, #4dabf7 100%)',
+                  }
+                }
+              }}
             />
           </Group>
         )}

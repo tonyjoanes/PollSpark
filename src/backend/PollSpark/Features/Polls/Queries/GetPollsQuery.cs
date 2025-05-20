@@ -8,7 +8,7 @@ using PollSpark.Models;
 
 namespace PollSpark.Features.Polls.Queries;
 
-public record GetPollsQuery(int Page, int PageSize)
+public record GetPollsQuery(int Page, int PageSize, Guid? CategoryId = null)
     : IRequest<OneOf<PaginatedResponse<PollDto>, ValidationError>>;
 
 public class GetPollsQueryHandler
@@ -38,8 +38,15 @@ public class GetPollsQueryHandler
 
         var query = _context
             .Polls.Include(p => p.Options)
+            .Include(p => p.Categories)
             .Include(p => p.CreatedBy)
             .Where(p => p.IsPublic || p.ExpiresAt == null || p.ExpiresAt > DateTime.UtcNow);
+
+        // Apply category filter if specified
+        if (request.CategoryId.HasValue)
+        {
+            query = query.Where(p => p.Categories.Any(c => c.Id == request.CategoryId.Value));
+        }
 
         var totalItems = await query.CountAsync(cancellationToken);
         var totalPages = (int)Math.Ceiling(totalItems / (double)request.PageSize);
@@ -59,7 +66,8 @@ public class GetPollsQueryHandler
                 p.ExpiresAt,
                 p.IsPublic,
                 p.CreatedBy.Username,
-                p.Options.Select(o => new PollOptionDto(o.Id, o.Text)).ToList()
+                p.Options.Select(o => new PollOptionDto(o.Id, o.Text)).ToList(),
+                p.Categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description)).ToList()
             ))
             .ToList();
 

@@ -14,6 +14,84 @@ PollPulse is a fast, engaging web app for creating and voting in short polls, bu
 - **Data Export**: Anonymized poll data for admins, enabling monetization for marketers.
 - **Functional Programming**: Uses `OneOf` for union types, immutable `record` types, and pure MediatR handlers.
 
+## 🎯 Planned Features
+
+### Enhanced Poll Types
+- Multiple choice polls
+- Ranked choice voting
+- Time-based polls
+- Image-based polls
+- Poll templates for common use cases
+
+### Social Features
+- Share polls on social media
+- Embed polls on external websites
+- Follow other users
+- Comment system
+- Poll reactions (like, bookmark)
+
+### Advanced Analytics
+- Demographic breakdown of votes
+- Time-based voting patterns
+- Export results in various formats
+- Custom charts and visualizations
+- Vote history tracking
+
+### User Experience
+- Dark mode support
+- Mobile-optimized interface
+- Keyboard shortcuts
+- Poll preview before publishing
+- Draft saving functionality
+- Poll scheduling
+
+### Engagement Features
+- Poll of the day/week
+- Featured polls section
+- User reputation system
+- Poll creation streaks
+- Achievement badges
+
+### Privacy and Control
+- Private polls (invite-only)
+- Password-protected polls
+- IP-based voting restrictions
+- Email verification for voting
+- Poll expiration settings
+
+### Integration Features
+- Calendar integration
+- Email notifications
+- Webhook support
+- API access for developers
+- Export/import functionality
+
+### Moderation Tools
+- Report inappropriate polls
+- Content moderation queue
+- User blocking
+- Poll review system
+- Automated content filtering
+
+### Monetization Options
+- Premium features for power users
+- Sponsored polls
+- Advanced analytics for businesses
+- Custom branding options
+- API access tiers
+
+### 🤖 AI-Powered Features
+- **Smart Poll Suggestions**: AI-generated poll recommendations based on user interests and trending topics
+- **Content Moderation**: AI-powered detection of inappropriate content in polls and comments
+- **Sentiment Analysis**: Analyze voter sentiment and provide insights on poll results
+- **Smart Scheduling**: AI recommendations for optimal poll timing based on audience engagement patterns
+- **Automated Summaries**: Generate concise summaries of poll results and key insights
+- **Trend Prediction**: Predict potential poll outcomes based on early voting patterns
+- **Personalized Experience**: AI-driven content recommendations and user experience customization
+- **Natural Language Polls**: Create polls from natural language descriptions
+- **Smart Categories**: Automatic categorization and tagging of polls using AI
+- **Voter Insights**: AI-powered analysis of voting patterns and demographic trends
+
 ## 🛠️ Tech Stack
 - **Backend**: C# (.NET 8), ASP.NET Core Minimal APIs, MediatR, Entity Framework Core, SQLite (dev)/PostgreSQL (prod), `OneOf` for union types.
 - **Frontend**: React, Vite, React Router, React Hook Form, Recharts, Axios.

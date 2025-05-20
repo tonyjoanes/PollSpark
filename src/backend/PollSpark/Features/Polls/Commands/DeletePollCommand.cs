@@ -9,7 +9,8 @@ namespace PollSpark.Features.Polls.Commands;
 
 public record DeletePollCommand(Guid Id) : IRequest<OneOf<Success, ValidationError>>;
 
-public class DeletePollCommandHandler : IRequestHandler<DeletePollCommand, OneOf<Success, ValidationError>>
+public class DeletePollCommandHandler
+    : IRequestHandler<DeletePollCommand, OneOf<Success, ValidationError>>
 {
     private readonly PollSparkContext _context;
     private readonly ICurrentUserService _currentUserService;
@@ -34,8 +35,10 @@ public class DeletePollCommandHandler : IRequestHandler<DeletePollCommand, OneOf
             return new ValidationError("User not authenticated");
         }
 
-        var poll = await _context.Polls
-            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+        var poll = await _context.Polls.FirstOrDefaultAsync(
+            p => p.Id == request.Id,
+            cancellationToken
+        );
 
         if (poll == null)
         {
@@ -52,4 +55,4 @@ public class DeletePollCommandHandler : IRequestHandler<DeletePollCommand, OneOf
 
         return new Success();
     }
-} 
+}

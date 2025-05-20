@@ -12,6 +12,7 @@ public class PollSparkContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<PollOption> PollOptions => Set<PollOption>();
     public DbSet<Vote> Votes => Set<Vote>();
+    public DbSet<Category> Categories => Set<Category>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -57,5 +58,18 @@ public class PollSparkContext : DbContext
             .HasIndex(v => new { v.PollId, v.IpAddress })
             .IsUnique()
             .HasFilter("[IpAddress] IS NOT NULL");
+
+        // Configure many-to-many relationship between Poll and Category
+        modelBuilder
+            .Entity<Poll>()
+            .HasMany(p => p.Categories)
+            .WithMany(c => c.Polls)
+            .UsingEntity(j => j.ToTable("PollCategories"));
+
+        // Add unique constraint for category names
+        modelBuilder
+            .Entity<Category>()
+            .HasIndex(c => c.Name)
+            .IsUnique();
     }
 }

@@ -10,5 +10,6 @@ public record CreatePollCommand(
     string Description,
     bool IsPublic,
     DateTime? ExpiresAt,
-    List<string> Options
+    List<string> Options,
+    List<Guid> CategoryIds
 ) : IRequest<OneOf<PollDto, ValidationError>>;

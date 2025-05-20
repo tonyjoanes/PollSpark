@@ -9,7 +9,8 @@ namespace PollSpark.Features.Polls.Queries;
 
 public record GetPollByIdQuery(Guid Id) : IRequest<OneOf<PollDto, ErrorResponse>>;
 
-public class GetPollByIdQueryHandler : IRequestHandler<GetPollByIdQuery, OneOf<PollDto, ErrorResponse>>
+public class GetPollByIdQueryHandler
+    : IRequestHandler<GetPollByIdQuery, OneOf<PollDto, ErrorResponse>>
 {
     private readonly PollSparkContext _context;
 
@@ -23,8 +24,9 @@ public class GetPollByIdQueryHandler : IRequestHandler<GetPollByIdQuery, OneOf<P
         CancellationToken cancellationToken
     )
     {
-        var poll = await _context.Polls
-            .Include(p => p.Options)
+        var poll = await _context
+            .Polls.Include(p => p.Options)
+            .Include(p => p.Categories)
             .Include(p => p.CreatedBy)
             .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
 
@@ -46,7 +48,8 @@ public class GetPollByIdQueryHandler : IRequestHandler<GetPollByIdQuery, OneOf<P
             poll.ExpiresAt,
             poll.IsPublic,
             poll.CreatedBy.Username,
-            poll.Options.Select(o => new PollOptionDto(o.Id, o.Text)).ToList()
+            poll.Options.Select(o => new PollOptionDto(o.Id, o.Text)).ToList(),
+            poll.Categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description)).ToList()
         );
     }
-} 
+}

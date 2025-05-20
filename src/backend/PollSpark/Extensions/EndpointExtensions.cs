@@ -6,6 +6,7 @@ using PollSpark.DTOs;
 using PollSpark.Extensions;
 using PollSpark.Features.Auth.Commands;
 using PollSpark.Features.Auth.Queries;
+using PollSpark.Features.Categories.Queries;
 using PollSpark.Features.Polls.Commands;
 using PollSpark.Features.Polls.Queries;
 using PollSpark.Models;
@@ -207,13 +208,19 @@ public static class EndpointExtensions
                 {
                     // Read the request body
                     httpContext.Request.EnableBuffering();
-                    var requestBody = await new StreamReader(httpContext.Request.Body).ReadToEndAsync();
+                    var requestBody = await new StreamReader(
+                        httpContext.Request.Body
+                    ).ReadToEndAsync();
                     httpContext.Request.Body.Position = 0;
                     Console.WriteLine($"Raw request body: {requestBody}");
 
                     // Parse the request body
-                    var voteRequest = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(requestBody);
-                    Console.WriteLine($"Parsed request: {System.Text.Json.JsonSerializer.Serialize(voteRequest)}");
+                    var voteRequest = System.Text.Json.JsonSerializer.Deserialize<
+                        Dictionary<string, string>
+                    >(requestBody);
+                    Console.WriteLine(
+                        $"Parsed request: {System.Text.Json.JsonSerializer.Serialize(voteRequest)}"
+                    );
 
                     if (!Guid.TryParse(voteRequest["optionId"], out var optionId))
                     {
@@ -287,7 +294,11 @@ public static class EndpointExtensions
         group
             .MapGet(
                 "/my-votes",
-                async (IMediator mediator, [FromQuery] int page = 1, [FromQuery] int pageSize = 10) =>
+                async (
+                    IMediator mediator,
+                    [FromQuery] int page = 1,
+                    [FromQuery] int pageSize = 10
+                ) =>
                 {
                     var query = new GetUserVotedPollsQuery(page, pageSize);
                     var result = await mediator.Send(query);
@@ -301,5 +312,28 @@ public static class EndpointExtensions
             .WithDescription("Gets polls that the current user has voted on")
             .Produces<PaginatedResponse<PollDto>>(StatusCodes.Status200OK)
             .Produces<ValidationError>(StatusCodes.Status400BadRequest);
+    }
+
+    public static void MapCategoryEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/categories").WithTags("Categories");
+
+        group
+            .MapGet(
+                "/",
+                async (IMediator mediator) =>
+                {
+                    var query = new GetCategoriesQuery();
+                    var result = await mediator.Send(query);
+                    return result.Match(
+                        success => Results.Ok(success),
+                        error => Results.BadRequest(error)
+                    );
+                }
+            )
+            .WithName("GetCategories")
+            .WithDescription("Retrieves a list of all categories")
+            .Produces<List<CategoryDto>>(StatusCodes.Status200OK)
+            .CacheOutput(x => x.Tag("categories"));
     }
 }

@@ -139,8 +139,18 @@ app.UseAuthorization();
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
 app.MapPollEndpoints();
+app.MapCategoryEndpoints();
 
 // Add your endpoints here
 app.MapGet("/", () => "Welcome to PollSpark!");
+
+// Add this after the app.Build() call
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<PollSparkContext>();
+    await context.Database.MigrateAsync();
+    await DbSeeder.SeedCategories(context);
+    await DbSeeder.SeedPolls(context);
+}
 
 app.Run();

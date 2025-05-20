@@ -12,4 +12,5 @@ public record Poll
     public User CreatedBy { get; set; } = null!;
     public ICollection<PollOption> Options { get; set; } = new List<PollOption>();
     public ICollection<Vote> Votes { get; set; } = new List<Vote>();
+    public ICollection<Category> Categories { get; set; } = new List<Category>();
 }

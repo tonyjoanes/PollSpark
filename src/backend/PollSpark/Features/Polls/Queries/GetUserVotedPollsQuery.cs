@@ -57,6 +57,7 @@ public class GetUserVotedPollsQueryHandler
         // Get polls that the user has voted on
         var query = _context
             .Polls.Include(p => p.Options)
+            .Include(p => p.Categories)
             .Include(p => p.CreatedBy)
             .Include(p => p.Votes)
             .Where(p =>
@@ -84,7 +85,8 @@ public class GetUserVotedPollsQueryHandler
                 p.ExpiresAt,
                 p.IsPublic,
                 p.CreatedBy.Username,
-                p.Options.Select(o => new PollOptionDto(o.Id, o.Text)).ToList()
+                p.Options.Select(o => new PollOptionDto(o.Id, o.Text)).ToList(),
+                p.Categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description)).ToList()
             ))
             .ToList();
 

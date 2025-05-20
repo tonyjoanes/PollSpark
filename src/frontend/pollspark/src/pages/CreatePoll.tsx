@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Title, TextInput, Textarea, Button, Group, Stack, Switch, Text, Paper, rem } from '@mantine/core';
+import { Container, Title, TextInput, Textarea, Button, Group, Stack, Switch, Text, Paper, rem, MultiSelect } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useMutation } from '@tanstack/react-query';
-import { pollApi } from '../services/api';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { pollApi, categoryApi, type Category } from '../services/api';
 import { DateTimePicker } from '@mantine/dates';
 import { IconCalendar } from '@tabler/icons-react';
 
@@ -13,11 +13,17 @@ interface CreatePollFormData {
   isPublic: boolean;
   expiresAt: Date | null;
   options: string[];
+  categoryIds: string[];
 }
 
 export function CreatePoll() {
   const navigate = useNavigate();
   const [options, setOptions] = useState<string[]>(['', '']); // Start with two empty options
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoryApi.getCategories().then(res => res.data.$values),
+  });
 
   const form = useForm<CreatePollFormData>({
     initialValues: {
@@ -26,6 +32,7 @@ export function CreatePoll() {
       isPublic: true,
       expiresAt: null,
       options: ['', ''],
+      categoryIds: [],
     },
     validate: {
       title: (value) => (!value ? 'Title is required' : null),
@@ -46,6 +53,7 @@ export function CreatePoll() {
         isPublic: data.isPublic,
         options: data.options,
         expiresAt: data.expiresAt ? data.expiresAt.toISOString() : undefined,
+        categoryIds: data.categoryIds,
       };
       return pollApi.createPoll(apiData);
     },
@@ -108,6 +116,15 @@ export function CreatePoll() {
               leftSection={<IconCalendar size={16} />}
               size="md"
               {...form.getInputProps('expiresAt')}
+            />
+
+            <MultiSelect
+              label="Categories"
+              placeholder="Select categories"
+              data={categories.map(cat => ({ value: cat.id, label: cat.name }))}
+              searchable
+              clearable
+              {...form.getInputProps('categoryIds')}
             />
 
             <div>

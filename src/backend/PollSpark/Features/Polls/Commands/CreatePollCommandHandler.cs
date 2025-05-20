@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using OneOf;
@@ -5,7 +6,6 @@ using PollSpark.Data;
 using PollSpark.DTOs;
 using PollSpark.Features.Auth.Services;
 using PollSpark.Models;
-using System.Security.Claims;
 
 namespace PollSpark.Features.Polls.Commands;
 
@@ -35,6 +35,16 @@ public class CreatePollCommandHandler
             return new ValidationError("User not authenticated");
         }
 
+        // Validate categories exist
+        var categories = await _context
+            .Categories.Where(c => request.CategoryIds.Contains(c.Id))
+            .ToListAsync(cancellationToken);
+
+        if (categories.Count != request.CategoryIds.Count)
+        {
+            return new ValidationError("One or more categories do not exist");
+        }
+
         var poll = new Poll
         {
             Id = Guid.NewGuid(),
@@ -44,19 +54,19 @@ public class CreatePollCommandHandler
             ExpiresAt = request.ExpiresAt,
             CreatedById = currentUser.Id,
             CreatedAt = DateTime.UtcNow,
-            Options = request.Options.Select(o => new PollOption 
-            { 
-                Id = Guid.NewGuid(),
-                Text = o 
-            }).ToList()
+            Options = request
+                .Options.Select(o => new PollOption { Id = Guid.NewGuid(), Text = o })
+                .ToList(),
+            Categories = categories,
         };
 
         _context.Polls.Add(poll);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Load the created poll with its options and created by user
-        var createdPoll = await _context.Polls
-            .Include(p => p.Options)
+        // Load the created poll with its options, categories and created by user
+        var createdPoll = await _context
+            .Polls.Include(p => p.Options)
+            .Include(p => p.Categories)
             .Include(p => p.CreatedBy)
             .FirstOrDefaultAsync(p => p.Id == poll.Id, cancellationToken);
 
@@ -73,7 +83,10 @@ public class CreatePollCommandHandler
             createdPoll.ExpiresAt,
             createdPoll.IsPublic,
             createdPoll.CreatedBy.Username,
-            createdPoll.Options.Select(o => new PollOptionDto(o.Id, o.Text)).ToList()
+            createdPoll.Options.Select(o => new PollOptionDto(o.Id, o.Text)).ToList(),
+            createdPoll
+                .Categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description))
+                .ToList()
         );
     }
 }

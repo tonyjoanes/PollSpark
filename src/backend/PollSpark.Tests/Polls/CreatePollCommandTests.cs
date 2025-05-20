@@ -46,7 +46,8 @@ public class CreatePollCommandTests
             "This is a test poll",
             true,
             DateTime.UtcNow.AddDays(7),
-            new List<string> { "Option 1", "Option 2", "Option 3" }
+            new List<string> { "Option 1", "Option 2", "Option 3" },
+            new List<Guid>()
         );
 
         // Act
@@ -89,7 +90,8 @@ public class CreatePollCommandTests
             "This is a test poll",
             true,
             DateTime.UtcNow.AddDays(7),
-            new List<string> { "Option 1", "Option 2" }
+            new List<string> { "Option 1", "Option 2" },
+            new List<Guid>()
         );
 
         // Act
@@ -113,7 +115,8 @@ public class CreatePollCommandTests
             "This is a test poll",
             true,
             DateTime.UtcNow.AddDays(7),
-            new List<string> { "Option 1", "Option 2" }
+            new List<string> { "Option 1", "Option 2" },
+            new List<Guid>()
         );
 
         // Act
@@ -147,7 +150,8 @@ public class CreatePollCommandTests
             "This is a test poll",
             true,
             expirationDate,
-            new List<string> { "Option 1", "Option 2" }
+            new List<string> { "Option 1", "Option 2" },
+            new List<Guid>()
         );
 
         // Act
@@ -196,7 +200,8 @@ public class CreatePollCommandTests
             "This is a test poll",
             true,
             null,
-            new List<string> { "Option 1", "Option 2" }
+            new List<string> { "Option 1", "Option 2" },
+            new List<Guid>()
         );
 
         // Act

@@ -52,6 +52,7 @@ namespace PollSpark.Tests.Features.Polls
                 Description = "Test description",
                 CreatedById = Guid.NewGuid(),
                 CreatedAt = DateTime.UtcNow,
+                Categories = new List<Category>()
             };
             await _context.Polls.AddAsync(_poll);
             await _context.SaveChangesAsync();
@@ -95,9 +96,25 @@ namespace PollSpark.Tests.Features.Polls
                 Description = "Test description",
                 CreatedById = Guid.NewGuid(),
                 CreatedAt = DateTime.UtcNow,
+                Categories = new List<Category>()
             };
             await _context.Polls.AddAsync(_poll);
             await _context.SaveChangesAsync();
+        }
+
+        [Given(@"there is a category named ""(.*)""")]
+        public async Task GivenThereIsACategoryNamed(string categoryName)
+        {
+            var category = new Category
+            {
+                Id = Guid.NewGuid(),
+                Name = categoryName,
+                Description = "Test category description",
+                CreatedAt = DateTime.UtcNow
+            };
+            await _context.Categories.AddAsync(category);
+            await _context.SaveChangesAsync();
+            _scenarioContext.Set(category.Id, "CategoryId");
         }
 
         [When(@"I update the poll with new title ""(.*)""")]
@@ -109,7 +126,8 @@ namespace PollSpark.Tests.Features.Polls
                 _poll.Description,
                 _poll.IsPublic,
                 _poll.ExpiresAt,
-                _poll.Options.Select(o => o.Text).ToList()
+                _poll.Options.Select(o => o.Text).ToList(),
+                new List<Guid>()
             );
             _result = await _handler.Handle(command, default);
         }
@@ -123,7 +141,8 @@ namespace PollSpark.Tests.Features.Polls
                 newDescription,
                 _poll.IsPublic,
                 _poll.ExpiresAt,
-                _poll.Options.Select(o => o.Text).ToList()
+                _poll.Options.Select(o => o.Text).ToList(),
+                new List<Guid>()
             );
             _result = await _handler.Handle(command, default);
         }
@@ -137,7 +156,8 @@ namespace PollSpark.Tests.Features.Polls
                 _poll.Description,
                 _poll.IsPublic,
                 _poll.ExpiresAt,
-                new[] { newOption1, newOption2 }.ToList()
+                new[] { newOption1, newOption2 }.ToList(),
+                new List<Guid>()
             );
             _result = await _handler.Handle(command, default);
         }
@@ -151,7 +171,8 @@ namespace PollSpark.Tests.Features.Polls
                 "Updated Description",
                 _poll.IsPublic,
                 _poll.ExpiresAt,
-                new[] { "New Option" }.ToList()
+                new[] { "New Option" }.ToList(),
+                new List<Guid>()
             );
             _result = await _handler.Handle(command, default);
         }
@@ -165,7 +186,24 @@ namespace PollSpark.Tests.Features.Polls
                 "Updated Description",
                 true,
                 null,
-                new[] { "New Option" }.ToList()
+                new[] { "New Option" }.ToList(),
+                new List<Guid>()
+            );
+            _result = await _handler.Handle(command, default);
+        }
+
+        [When(@"I update the poll with category ""(.*)""")]
+        public async Task WhenIUpdateThePollWithCategory(string categoryName)
+        {
+            var categoryId = _scenarioContext.Get<Guid>("CategoryId");
+            var command = new UpdatePollCommand(
+                _poll.Id,
+                _poll.Title,
+                _poll.Description,
+                _poll.IsPublic,
+                _poll.ExpiresAt,
+                _poll.Options.Select(o => o.Text).ToList(),
+                new List<Guid> { categoryId }
             );
             _result = await _handler.Handle(command, default);
         }
@@ -202,6 +240,16 @@ namespace PollSpark.Tests.Features.Polls
             Assert.Equal(2, updatedPoll.Options.Count);
             Assert.Contains(updatedPoll.Options, o => o.Text == expectedOption1);
             Assert.Contains(updatedPoll.Options, o => o.Text == expectedOption2);
+        }
+
+        [Then(@"the poll should have the category ""(.*)""")]
+        public async Task ThenThePollShouldHaveTheCategory(string expectedCategoryName)
+        {
+            var updatedPoll = await _context
+                .Polls.Include(p => p.Categories)
+                .FirstOrDefaultAsync(p => p.Id == _poll.Id);
+            Assert.Single(updatedPoll.Categories);
+            Assert.Equal(expectedCategoryName, updatedPoll.Categories.First().Name);
         }
 
         [Then(@"I should receive an error message ""(.*)""")]

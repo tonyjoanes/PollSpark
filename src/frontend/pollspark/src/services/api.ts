@@ -34,6 +34,14 @@ export interface Poll {
       text: string;
     }[];
   };
+  categories: {
+    $id: string;
+    $values: {
+      id: string;
+      name: string;
+      description: string;
+    }[];
+  };
 }
 
 export interface PollResults {
@@ -60,6 +68,18 @@ export interface User {
   createdPollsCount: number;
 }
 
+export interface Category {
+  $id: string;
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface CategoryResponse {
+  $id: string;
+  $values: Category[];
+}
+
 export interface PaginatedResponse<T> {
   $id: string;
   items: {
@@ -82,6 +102,7 @@ export const pollApi = {
     isPublic: boolean;
     expiresAt?: string;
     options: string[];
+    categoryIds: string[];
   }) => api.post<Poll>('/polls', data),
   vote: (pollId: string, optionId: string) => {
     console.log('Making vote request:', {
@@ -117,6 +138,10 @@ export const authApi = {
   logout: () => {
     localStorage.removeItem('token');
   },
+};
+
+export const categoryApi = {
+  getCategories: () => api.get<CategoryResponse>('/categories'),
 };
 
 export default api; 
