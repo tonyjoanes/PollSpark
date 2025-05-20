@@ -1,0 +1,14 @@
+{
+  "bindingCulture": {
+    "language": "en-us"
+  },
+  "language": {
+    "feature": "en-us"
+  },
+  "runtime": {
+    "executionParallel": false
+  },
+  "generator": {
+    "allowDebugGeneratedFiles": true
+  }
+} 
