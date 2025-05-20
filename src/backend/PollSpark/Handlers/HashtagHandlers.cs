@@ -47,7 +47,7 @@ public static class GetPollsByHashtag
             var totalPages = (int)Math.Ceiling(totalItems / (double)request.PageSize);
 
             var polls = await query
-                .Skip(request.Page * request.PageSize)
+                .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .Select(p => new PollDto(
                     p.Id,

@@ -135,10 +135,8 @@ export const pollApi = {
     api.get<string | null>(`/polls/${pollId}/my-vote`),
   getVotedPolls: (page: number = 0, pageSize: number = 10) =>
     api.get<PaginatedResponse<Poll>>('/polls/my-votes', { params: { page, pageSize } }),
-  getPollsByHashtag: async (hashtag: string, page: number, pageSize: number) => {
-    const response = await api.get(`/polls/hashtag/${hashtag}?page=${page}&pageSize=${pageSize}`);
-    return response.data;
-  },
+  getPollsByHashtag: (hashtag: string, page: number, pageSize: number) =>
+    api.get<PaginatedResponse<Poll>>(`/polls/hashtag/${hashtag}`, { params: { page, pageSize } }),
   getPopularHashtags: async () => {
     const response = await api.get('/hashtags/popular');
     return response.data;

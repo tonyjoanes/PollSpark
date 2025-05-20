@@ -41,6 +41,11 @@ public class GetPollByIdQueryHandler
             return new ErrorResponse("Poll has expired");
         }
 
+        if (poll.CreatedBy?.UserName == null)
+        {
+            return new ErrorResponse("Poll creator's username is missing");
+        }
+
         return new PollDto(
             poll.Id,
             poll.Title,

@@ -76,6 +76,11 @@ public class CreatePollCommandHandler
             return new ValidationError("Failed to create poll");
         }
 
+        if (createdPoll.CreatedBy?.UserName == null)
+        {
+            return new ValidationError("Poll creator's username is missing");
+        }
+
         return new PollDto(
             createdPoll.Id,
             createdPoll.Title,

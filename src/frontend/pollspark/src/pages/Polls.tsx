@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Container, Title, Text, Card, Group, Stack, Button, Pagination, Badge, Skeleton, SegmentedControl, Select, Paper, rem, ActionIcon, Tooltip, Chip } from '@mantine/core';
+import { Container, Title, Text, Card, Group, Stack, Button, Pagination, Badge, Skeleton, SegmentedControl, Select, Paper, ActionIcon, Tooltip, Chip } from '@mantine/core';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { pollApi, categoryApi, type Poll, type PollResults, type Category, type Hashtag } from '../services/api';
+import { pollApi, categoryApi, type Poll, type PollResults, type Hashtag } from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
-import { IconClock, IconUser, IconCalendar, IconBrandX, IconBrandLinkedin, IconHash } from '@tabler/icons-react';
+import { IconClock, IconUser, IconCalendar, IconBrandX, IconBrandLinkedin, IconX } from '@tabler/icons-react';
 
 type PollFilter = 'all' | 'active' | 'expired' | 'voted';
 
@@ -27,14 +27,16 @@ export function Polls() {
 
   const { data: response, isLoading, error } = useQuery({
     queryKey: ['polls', page, filter, selectedCategory, selectedHashtag],
-    queryFn: () => {
+    queryFn: async () => {
+      let result;
       if (selectedHashtag) {
-        return pollApi.getPollsByHashtag(selectedHashtag, page, pageSize);
+        result = await pollApi.getPollsByHashtag(selectedHashtag, page, pageSize);
+      } else if (filter === 'voted') {
+        result = await pollApi.getVotedPolls(page, pageSize);
+      } else {
+        result = await pollApi.getPolls(page, pageSize);
       }
-      if (filter === 'voted') {
-        return pollApi.getVotedPolls(page, pageSize);
-      }
-      return pollApi.getPolls(page, pageSize);
+      return result;
     },
   });
 
@@ -55,19 +57,24 @@ export function Polls() {
     enabled: !!response?.data?.items?.$values?.length,
   });
 
+  console.log('Full Response:', response);
   const data = response?.data;
+  console.log('Data:', data);
   const items = data?.items?.$values || [];
-  
-  console.log('Full response:', response);
-  console.log('Extracted data:', data);
   console.log('Items:', items);
-  console.log('Items type:', items ? typeof items : 'undefined');
-  console.log('Is array?', Array.isArray(items));
+  const totalPages = data?.totalPages || 1;
+  
+  console.log('Selected Hashtag:', selectedHashtag);
 
   const filteredItems = items.filter((poll: Poll) => {
     const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
     const matchesCategory = !selectedCategory || 
       poll.categories.$values.some((cat: { id: string }) => cat.id === selectedCategory);
+    
+    // Don't apply additional filters when a hashtag is selected
+    if (selectedHashtag) {
+      return true;
+    }
     
     switch (filter) {
       case 'active':
@@ -79,7 +86,10 @@ export function Polls() {
     }
   });
 
+  console.log('Filtered Items:', filteredItems);
+
   if (error) {
+    console.error('Error:', error);
     return (
       <Container size="lg" py="xl">
         <Text c="red" ta="center">
@@ -127,7 +137,35 @@ export function Polls() {
             </Group>
           </Group>
 
-          {popularHashtags.length > 0 && (
+          {selectedHashtag && (
+            <Group gap="xs" mt="md">
+              <Badge 
+                size="lg" 
+                color="blue"
+                variant="filled"
+                style={{
+                  background: 'linear-gradient(45deg, #228be6 0%, #4dabf7 100%)',
+                  padding: '8px 16px'
+                }}
+              >
+                #{selectedHashtag}
+              </Badge>
+              <Button
+                variant="subtle"
+                color="gray"
+                size="sm"
+                onClick={() => {
+                  setSelectedHashtag(null);
+                  setPage(1);
+                }}
+                leftSection={<IconX size={16} />}
+              >
+                Clear hashtag filter
+              </Button>
+            </Group>
+          )}
+
+          {!selectedHashtag && popularHashtags.length > 0 && (
             <Group gap="xs">
               <Text size="sm" fw={500} c="dimmed">Popular hashtags:</Text>
               {popularHashtags.map((hashtag: Hashtag) => (
@@ -165,7 +203,7 @@ export function Polls() {
               </Stack>
             </Card>
           ))
-        ) : (
+        ) : filteredItems.length > 0 ? (
           // Poll cards
           filteredItems.map((poll: Poll) => {
             const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
@@ -387,12 +425,16 @@ export function Polls() {
               </Card>
             );
           })
+        ) : (
+          <Text ta="center" c="dimmed">
+            No polls found
+          </Text>
         )}
 
         {data && (
           <Group justify="center" mt="xl">
             <Pagination
-              total={data.totalPages}
+              total={totalPages}
               value={page}
               onChange={setPage}
               withEdges

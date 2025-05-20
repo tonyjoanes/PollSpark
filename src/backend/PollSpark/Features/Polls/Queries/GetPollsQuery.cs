@@ -59,17 +59,20 @@ public class GetPollsQueryHandler
             .ToListAsync(cancellationToken);
 
         var pollDtos = polls
-            .Select(p => new PollDto(
-                p.Id,
-                p.Title,
-                p.Description,
-                p.CreatedAt,
-                p.ExpiresAt,
-                p.IsPublic,
-                p.CreatedBy.UserName,
-                p.Options.Select(o => new PollOptionDto(o.Id, o.Text)).ToList(),
-                p.Categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description)).ToList(),
-                p.Hashtags.Select(h => new HashtagDto(h.Id, h.Name)).ToList()
+            .Select(p => new { Poll = p, Username = p.CreatedBy?.UserName })
+            .Where(x => x.Username != null)
+            .Select(x => new PollDto(
+                x.Poll.Id,
+                x.Poll.Title,
+                x.Poll.Description,
+                x.Poll.CreatedAt,
+                x.Poll.ExpiresAt,
+                x.Poll.IsPublic,
+                x.Username!,
+                x.Poll.Options.Select(o => new PollOptionDto(o.Id, o.Text)).ToList(),
+                x.Poll.Categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description))
+                    .ToList(),
+                x.Poll.Hashtags.Select(h => new HashtagDto(h.Id, h.Name)).ToList()
             ))
             .ToList();
 

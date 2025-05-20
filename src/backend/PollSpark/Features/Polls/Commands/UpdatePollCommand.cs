@@ -92,6 +92,11 @@ public class UpdatePollCommandHandler
 
         await _context.SaveChangesAsync(cancellationToken);
 
+        if (poll.CreatedBy?.UserName == null)
+        {
+            return new ValidationError("Poll creator's username is missing");
+        }
+
         return new PollDto(
             poll.Id,
             poll.Title,
