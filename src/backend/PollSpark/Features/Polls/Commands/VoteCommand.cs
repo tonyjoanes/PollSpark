@@ -68,7 +68,11 @@ public class VoteCommandHandler : IRequestHandler<VoteCommand, OneOf<Success, Va
 
         if (existingVote != null)
         {
-            return new ValidationError("You have already voted on this poll");
+            // Update existing vote
+            existingVote.OptionId = request.OptionId;
+            existingVote.CreatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+            return new Success();
         }
 
         // Create the vote

@@ -25,11 +25,12 @@ export function ViewPoll() {
   // });
 
   const poll = pollResponse?.data;
+  console.log('Full poll data:', poll);
   // const results = resultsResponse?.data;
 
   const voteMutation = useMutation({
-    mutationFn: ({ pollId, option }: { pollId: string; option: string }) =>
-      pollApi.vote(pollId, option),
+    mutationFn: ({ pollId, optionId }: { pollId: string; optionId: string }) =>
+      pollApi.vote(pollId, optionId),
     onSuccess: () => {
       // Comment out results invalidation until backend is implemented
       // queryClient.invalidateQueries({ queryKey: ['poll-results', id] });
@@ -66,8 +67,9 @@ export function ViewPoll() {
   }
 
   const handleVote = () => {
-    if (!selectedOption) return;
-    voteMutation.mutate({ pollId: id!, option: selectedOption });
+    if (!selectedOption || !poll) return;
+    console.log('Voting with:', { pollId: poll.id, optionId: selectedOption });
+    voteMutation.mutate({ pollId: poll.id, optionId: selectedOption });
   };
 
   return (

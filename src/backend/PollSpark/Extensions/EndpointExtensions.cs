@@ -203,9 +203,24 @@ public static class EndpointExtensions
         group
             .MapPost(
                 "/{id}/vote",
-                async (Guid id, VoteCommand command, IMediator mediator) =>
+                async (Guid id, HttpContext httpContext, IMediator mediator) =>
                 {
-                    command = command with { PollId = id };
+                    // Read the request body
+                    httpContext.Request.EnableBuffering();
+                    var requestBody = await new StreamReader(httpContext.Request.Body).ReadToEndAsync();
+                    httpContext.Request.Body.Position = 0;
+                    Console.WriteLine($"Raw request body: {requestBody}");
+
+                    // Parse the request body
+                    var voteRequest = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(requestBody);
+                    Console.WriteLine($"Parsed request: {System.Text.Json.JsonSerializer.Serialize(voteRequest)}");
+
+                    if (!Guid.TryParse(voteRequest["optionId"], out var optionId))
+                    {
+                        return Results.BadRequest(new ValidationError("Invalid option ID format"));
+                    }
+
+                    var command = new VoteCommand(id, optionId);
                     var result = await mediator.Send(command);
                     return result.Match(
                         success => Results.Ok(success),

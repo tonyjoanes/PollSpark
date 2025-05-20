@@ -76,8 +76,23 @@ export const pollApi = {
     expiresAt?: string;
     options: string[];
   }) => api.post<Poll>('/polls', data),
-  vote: (pollId: string, option: string) => 
-    api.post(`/polls/${pollId}/vote`, { option }),
+  vote: (pollId: string, optionId: string) => {
+    console.log('Making vote request:', {
+      url: `/polls/${pollId}/vote`,
+      data: { 
+        pollId,
+        optionId
+      }
+    });
+    return api.post(`/polls/${pollId}/vote`, { 
+      pollId,
+      optionId
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+  },
   getResults: (pollId: string) => 
     api.get<PollResults>(`/polls/${pollId}/results`),
 };
